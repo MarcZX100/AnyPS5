@@ -1,8 +1,8 @@
 # About
 
-Tool for automatic executables porting to Linux and Windows.
+Tool for automatically porting compiled PS5 executables to Linux and Windows. AnyPS5 is not a source SDK or a general-purpose compatibility layer like Wine: it relinks an existing game executable and its modules into the target system's native format, then provides implementations of the PS5 system libraries they use. The game runs as a native process; no separate emulator process is used.
 
-Includes a [relinker](core/relinker) that converts executable to the target system's native format and implementations of [system prx libraries](core/libs/prx) suitable for dynamic linking. No emulation or separate runtime process.
+This includes a [relinker](core/relinker) and [system PRX libraries](core/libs/prx) suitable for dynamic linking.
 
 [Usage](docs/user/USAGE.md), [Build instructions](docs/dev/BUILD.md), [Architecture](docs/dev/ARCHITECTURE.md), [Technical debt of the project](docs/dev/TechnicalDebt.md), [code style conventions](docs/dev/CONVENTIONS.md), [contributing](CONTRIBUTING.md)
 
