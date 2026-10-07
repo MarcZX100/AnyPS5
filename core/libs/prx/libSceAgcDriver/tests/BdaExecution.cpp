@@ -87,7 +87,9 @@ private:
 
 }
 
-void RunBdaExecutionTests(const Context& context) {
+namespace {
+
+void RunBdaExecutionTestsImpl(const Context& context, bool crossRangeOnly) {
     namespace Abi = ShaderRecompiler::BdaAbi;
     Buffer first(context, 3, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
     Buffer second(context, 2, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
@@ -124,6 +126,7 @@ void RunBdaExecutionTests(const Context& context) {
     run(guest, 8, 0x11, static_cast<Abi::FaultReason>(0));
     run(guest + 1, 16, 0x3322, static_cast<Abi::FaultReason>(0));
     run(guest + 1, 32, 0x55443322, static_cast<Abi::FaultReason>(0));
+    if (crossRangeOnly) return;
     run(guest + 5, 8, 0, Abi::FaultReason::Unmapped, 2, 64);
     run(guest - 1, 8, 0, Abi::FaultReason::Unmapped);
     run(std::numeric_limits<std::uint64_t>::max() - 1, 32, 0, Abi::FaultReason::Overflow);
@@ -165,4 +168,14 @@ void RunBdaExecutionTests(const Context& context) {
     }
     ranges[0].permissions = 0;
     run(guest, 8, 0, Abi::FaultReason::Permission);
+}
+
+}
+
+void RunBdaExecutionTests(const Context& context) {
+    RunBdaExecutionTestsImpl(context, false);
+}
+
+void RunBdaCrossRangeExecutionTests(const Context& context) {
+    RunBdaExecutionTestsImpl(context, true);
 }
