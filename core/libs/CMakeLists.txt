@@ -146,8 +146,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             message(FATAL_ERROR "Missing native/plain library pair: ${native} and ${plain}")
         endif()
 
-        # Preserve the wrapper's plain twin as a direct ELF dependency even when it has no
-        # symbols referenced at link time. Guest modules need both libraries in their scope.
         target_link_libraries(${native} PRIVATE
                 "-Wl,--push-state,--no-as-needed"
                 ${plain}
