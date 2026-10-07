@@ -97,6 +97,12 @@ static int MapFlags(int sceFlags) {
 
 static int SceErrorFromErrno(int error) {
     constexpr int GuestEio = 5;
+#ifdef ENAMETOOLONG
+    if (error == ENAMETOOLONG) return SCE_KERNEL_ERROR_ENAMETOOLONG;
+#endif
+#ifdef ELOOP
+    if (error == ELOOP) return SCE_KERNEL_ERROR_ELOOP;
+#endif
     const int guest = error > 0 && error <= 34 ? error : GuestEio;
     return static_cast<int>(0x80020000u | static_cast<unsigned>(guest));
 }
