@@ -128,6 +128,47 @@ foreach(LIB_DIR ${LIBS_DIRS})
     endif()
 endforeach()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(ANYPS5_NATIVE_WRAPPERS
+            libSceAjm.native
+            libSceAudiodec.native
+            libSceAvPlayer.native
+            libSceFont.native
+            libSceMsgDialog.native
+            libSceNgs2.native
+            libSceSaveData.native
+            libSceSaveDataDialog.native
+            libSceShare.native
+    )
+    foreach(native IN LISTS ANYPS5_NATIVE_WRAPPERS)
+        string(REGEX REPLACE "\\.native$" "" plain "${native}")
+        if(NOT TARGET ${native} OR NOT TARGET ${plain})
+            message(FATAL_ERROR "Missing native/plain library pair: ${native} and ${plain}")
+        endif()
+
+        # Preserve the wrapper's plain twin as a direct ELF dependency even when it has no
+        # symbols referenced at link time. Guest modules need both libraries in their scope.
+        target_link_libraries(${native} PRIVATE
+                "-Wl,--push-state,--no-as-needed"
+                ${plain}
+                "-Wl,--pop-state"
+        )
+
+        if(BUILD_TESTING)
+            set_target_properties(${native} PROPERTIES EXCLUDE_FROM_ALL OFF)
+            if(CMAKE_READELF)
+                add_test(NAME "native_wrapper_dependency_${native}"
+                        COMMAND ${CMAKE_COMMAND}
+                        "-DREADELF=${CMAKE_READELF}"
+                        "-DWRAPPER=$<TARGET_FILE:${native}>"
+                        "-DPLAIN=$<TARGET_FILE:${plain}>"
+                        -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/CheckNativeWrapperDependency.cmake"
+                )
+            endif()
+        endif()
+    endforeach()
+endif()
+
 add_custom_target(libs DEPENDS ${PATCHED_OUTPUTS})
 
 if(BUILD_TESTING)
