@@ -239,7 +239,7 @@ int APS5_VABI strncpy_s_nid_postfix(char* dest, size_t destsz, const char* src, 
         return GuestErange;
     }
     const size_t sourceSize = length + (length < count ? 1u : 0u);
-    if (RangesOverlap(dest, destsz, src, sourceSize)) {
+    if (RangesOverlap(dest, length + 1u, src, sourceSize)) {
         dest[0] = '\0';
         return GuestEinval;
     }
@@ -269,7 +269,7 @@ int APS5_VABI strncat_s_nid_postfix(char* dest, size_t destsz, const char* src, 
         return GuestErange;
     }
     const size_t sourceSize = length + (length < count ? 1u : 0u);
-    if (RangesOverlap(dest, destsz, src, sourceSize)) {
+    if (RangesOverlap(dest + used, length + 1u, src, sourceSize)) {
         dest[0] = '\0';
         return GuestEinval;
     }
