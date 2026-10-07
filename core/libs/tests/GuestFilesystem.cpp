@@ -6,6 +6,7 @@
 #include <fstream>
 #include <cstdio>
 #include <cstring>
+#include <string>
 #ifdef _WIN32
 #include <io.h>
 #else
@@ -198,6 +199,16 @@ int main() {
     const auto empty = root / "empty";
     Require(std::filesystem::create_directory(empty));
     Require(rmdir_nid_postfix(empty.string().c_str()) == 0 && !std::filesystem::exists(empty));
+#ifndef _WIN32
+    const auto longName = std::string(300, 'x');
+    const auto longPath = (root / longName).string();
+    Require(sceKernelOpen(longPath.c_str(), 0, 0) == static_cast<int>(0x8002003fu));
+    Require(sceKernelUnlink(longPath.c_str()) == static_cast<int>(0x8002003fu));
+    const auto symlinkLoop = root / "symlink-loop";
+    std::filesystem::create_symlink("symlink-loop", symlinkLoop);
+    Require(sceKernelOpen(symlinkLoop.string().c_str(), 0, 0) == static_cast<int>(0x8002003eu));
+    Require(std::filesystem::remove(symlinkLoop));
+#endif
     Require(remove_nid_postfix(root.string().c_str()) == 0);
     Require(!std::filesystem::exists(root));
 }
