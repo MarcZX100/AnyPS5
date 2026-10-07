@@ -9,6 +9,19 @@
 
 #include "prx/libc/include/General.hpp"
 
+namespace {
+
+bool RangesOverlap(const void* first, std::size_t firstSize, const void* second, std::size_t secondSize) {
+    if (firstSize == 0 || secondSize == 0) return false;
+    const auto firstAddress = reinterpret_cast<std::uintptr_t>(first);
+    const auto secondAddress = reinterpret_cast<std::uintptr_t>(second);
+    return firstAddress <= secondAddress
+        ? secondAddress - firstAddress < firstSize
+        : firstAddress - secondAddress < secondSize;
+}
+
+}
+
 extern "C" {
 
 void* APS5_VABI memset_nid_postfix(void* s, int c, size_t n) {
@@ -185,6 +198,11 @@ int APS5_VABI strncpy_s_nid_postfix(char* dest, size_t destsz, const char* src, 
         dest[0] = '\0';
         return GuestErange;
     }
+    const size_t sourceSize = length + (length < count ? 1u : 0u);
+    if (RangesOverlap(dest, destsz, src, sourceSize)) {
+        dest[0] = '\0';
+        return GuestEinval;
+    }
     std::memcpy(dest, src, length);
     dest[length] = '\0';
     return 0;
@@ -210,6 +228,11 @@ int APS5_VABI strncat_s_nid_postfix(char* dest, size_t destsz, const char* src, 
         dest[0] = '\0';
         return GuestErange;
     }
+    const size_t sourceSize = length + (length < count ? 1u : 0u);
+    if (RangesOverlap(dest, destsz, src, sourceSize)) {
+        dest[0] = '\0';
+        return GuestEinval;
+    }
     std::memcpy(dest + used, src, length);
     dest[used + length] = '\0';
     return 0;
@@ -227,10 +250,7 @@ int APS5_VABI memcpy_s_nid_postfix(void* dest, size_t destsz, const void* src, s
         std::memset(dest, 0, destsz);
         return src ? GuestErange : GuestEinval;
     }
-    const auto destination = reinterpret_cast<std::uintptr_t>(dest);
-    const auto source = reinterpret_cast<std::uintptr_t>(src);
-    const auto distance = destination < source ? source - destination : destination - source;
-    if (count != 0 && distance < count) {
+    if (RangesOverlap(dest, count, src, count)) {
         std::memset(dest, 0, destsz);
         return GuestEinval;
     }
