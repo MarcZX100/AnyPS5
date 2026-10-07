@@ -124,6 +124,10 @@ int main() {
     try {
         const auto device = OpenVulkanTestDevice();
         if (!device) return VulkanTestSkipped;
+        if (device->Target().subgroupSize < Threads) {
+            std::printf("skipped, the device's subgroups are narrower than a wave32 (%u lanes)\n", device->Target().subgroupSize);
+            return VulkanTestSkipped;
+        }
         Run(*device);
         Check();
         CheckRejections(*device);
