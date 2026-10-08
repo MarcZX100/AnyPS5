@@ -21,6 +21,7 @@ extern LibcFloatConstant _FInf_nid_postfix;
 extern LibcFloatConstant _FNan_nid_postfix;
 short APS5_VABI _FDtest_nid_postfix(const float*);
 float APS5_VABI fmodf_nid_postfix(float, float);
+float APS5_VABI nextafterf_nid_postfix(float, float);
 float APS5_VABI asinf_nid_postfix(float);
 float APS5_VABI acosf_nid_postfix(float);
 float APS5_VABI atan2f_nid_postfix(float, float);
@@ -194,6 +195,9 @@ int main() {
         const float result = signalingFirst ? hypotf_nid_postfix(signaling, infinity) : hypotf_nid_postfix(infinity, signaling);
         Require(std::isinf(result) && result > 0.f && std::fetestexcept(FE_INVALID) != 0);
     }
+    Require(std::bit_cast<std::uint32_t>(nextafterf_nid_postfix(1.f, 2.f)) == 0x3f800001u);
+    Require(std::bit_cast<std::uint32_t>(nextafterf_nid_postfix(1.f, 0.f)) == 0x3f7fffffu);
+    Require(nextafterf_nid_postfix(1.f, 1.f) == 1.f);
     Require(log10f_nid_postfix(100.f) == 2.f);
     Require(logbf_nid_postfix(8.f) == 3.f && logbf_nid_postfix(-0.75f) == -1.f);
     Require(logbf_nid_postfix(std::numeric_limits<float>::denorm_min()) == -149.f);
