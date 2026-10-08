@@ -44,8 +44,21 @@ int APS5_VABI __isnormal_nid_postfix(double);
 int APS5_VABI __isnormalf_nid_postfix(float);
 int APS5_VABI __isinff_nid_postfix(float);
 std::lldiv_t APS5_VABI lldiv_nid_postfix(long long, long long);
+float APS5_VABI acoshf_nid_postfix(float);
+float APS5_VABI asinhf_nid_postfix(float);
+float APS5_VABI atanhf_nid_postfix(float);
 }
 static void Require(bool value) { if (!value) std::abort(); }
+
+static void CheckFloatInverseHyperbolics() {
+    const auto infinity = std::numeric_limits<float>::infinity();
+    Require(acoshf_nid_postfix(1.f) == 0.f && std::abs(acoshf_nid_postfix(2.f) - 1.3169579f) < 0.000001f);
+    Require(std::isnan(acoshf_nid_postfix(0.5f)) && std::isinf(acoshf_nid_postfix(infinity)));
+    Require(asinhf_nid_postfix(0.f) == 0.f && std::abs(asinhf_nid_postfix(2.f) - 1.4436355f) < 0.000001f);
+    Require(asinhf_nid_postfix(-2.f) == -asinhf_nid_postfix(2.f) && std::isinf(asinhf_nid_postfix(-infinity)));
+    Require(atanhf_nid_postfix(0.f) == 0.f && std::abs(atanhf_nid_postfix(0.5f) - 0.54930615f) < 0.000001f);
+    Require(std::isinf(atanhf_nid_postfix(1.f)) && std::isnan(atanhf_nid_postfix(2.f)));
+}
 
 static void CheckIntegerConversions() {
     for (const long long numerator : {4294967301LL, -4294967301LL}) {
@@ -161,6 +174,7 @@ static void CheckFloatClassification() {
 }
 
 int main() {
+    CheckFloatInverseHyperbolics();
     CheckFloatClassification();
     CheckIntegerConversions();
     Require(atof_nid_postfix(" -12.5tail") == -12.5);
