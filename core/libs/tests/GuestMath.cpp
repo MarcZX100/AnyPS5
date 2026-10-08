@@ -22,6 +22,7 @@ extern LibcFloatConstant _FNan_nid_postfix;
 short APS5_VABI _FDtest_nid_postfix(const float*);
 float APS5_VABI fmodf_nid_postfix(float, float);
 float APS5_VABI asinf_nid_postfix(float);
+double APS5_VABI asinh_nid_postfix(double);
 float APS5_VABI acosf_nid_postfix(float);
 float APS5_VABI atan2f_nid_postfix(float, float);
 float APS5_VABI hypotf_nid_postfix(float, float);
@@ -178,6 +179,8 @@ int main() {
     Require(std::signbit(fmodf_nid_postfix(-4.f, 2.f)));
     Require(std::isnan(fmodf_nid_postfix(1.f, 0.f)));
     Require(std::abs(asinf_nid_postfix(0.5f) - 0.5235988f) < 0.000001f);
+    Require(asinh_nid_postfix(0.0) == 0.0 && std::abs(asinh_nid_postfix(2.0) - 1.4436354751788103) < 1e-15);
+    Require(asinh_nid_postfix(-std::numeric_limits<double>::infinity()) == -std::numeric_limits<double>::infinity());
     Require(std::abs(acosf_nid_postfix(0.5f) - 1.0471976f) < 0.000001f);
     Require(std::abs(atan2f_nid_postfix(1.f, -1.f) - 2.3561945f) < 0.000001f);
     Require(tanf_nid_postfix(0.f) == 0.f);
