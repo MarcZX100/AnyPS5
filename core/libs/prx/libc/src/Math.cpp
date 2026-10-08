@@ -41,6 +41,7 @@ int APS5_VABI __isinff_nid_postfix(float x) { return std::isinf(x) ? 1 : 0; }
 double APS5_VABI cbrt_nid_postfix(double x) { return std::cbrt(x); }
 double APS5_VABI asin_nid_postfix(double x) { return std::asin(x); }
 double APS5_VABI acos_nid_postfix(double x) { return std::acos(x); }
+double APS5_VABI acosh_nid_postfix(double x) { return std::acosh(x); }
 double APS5_VABI exp_nid_postfix(double x) { return std::exp(x); }
 double APS5_VABI atan_nid_postfix(double x) { return std::atan(x); }
 double APS5_VABI tan_nid_postfix(double x) { return std::tan(x); }
