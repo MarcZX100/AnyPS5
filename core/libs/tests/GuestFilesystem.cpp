@@ -14,6 +14,7 @@
 extern "C" {
 int APS5_VABI remove_nid_postfix(const char*);
 int APS5_VABI rename_nid_postfix(const char*, const char*);
+int APS5_VABI utime_nid_postfix(const char*, const void*);
 int APS5_VABI sceKernelChmod_nid_postfix(const char*, unsigned short);
 int APS5_VABI sceKernelFchmod(int, unsigned short);
 int APS5_VABI fchmod_nid_postfix(int, int);
@@ -116,6 +117,16 @@ int main() {
     Require(remove_nid_postfix(file.string().c_str()) == -1 && *__error_nid_postfix() == 2);
     const auto sized = root / "sized.txt";
     { std::ofstream stream(sized); stream << "0123456789abcdef"; }
+    std::int64_t guestTimes[2]{1000000000, 1000000001};
+    Require(utime_nid_postfix(sized.string().c_str(), guestTimes) == 0);
+    FileStat timestampStatus{};
+    Require(stat_nid_postfix(sized.string().c_str(), &timestampStatus) == 0);
+    Require(timestampStatus.st_atim.tv_sec == guestTimes[0] && timestampStatus.st_mtim.tv_sec == guestTimes[1]);
+    Require(utime_nid_postfix(sized.string().c_str(), nullptr) == 0);
+    Require(stat_nid_postfix(sized.string().c_str(), &timestampStatus) == 0 && timestampStatus.st_mtim.tv_sec > guestTimes[1]);
+    Require(utime_nid_postfix(nullptr, guestTimes) == -1 && *__error_nid_postfix() == 14);
+    Require(utime_nid_postfix("", guestTimes) == -1 && *__error_nid_postfix() == 2);
+    Require(utime_nid_postfix((root / "missing").string().c_str(), guestTimes) == -1 && *__error_nid_postfix() == 2);
     Require(sceKernelChmod_nid_postfix(sized.string().c_str(), 0600) == 0);
     Require(sceKernelTruncate_nid_postfix(sized.string().c_str(), 6) == 0);
     Require(std::filesystem::file_size(sized) == 6);
