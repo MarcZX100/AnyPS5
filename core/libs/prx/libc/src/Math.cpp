@@ -69,6 +69,7 @@ float APS5_VABI powf_nid_postfix(float base, float exp) { return std::pow(base, 
 double APS5_VABI pow_nid_postfix(double base, double exp) { return std::pow(base, exp); }
 float APS5_VABI expf_nid_postfix(float x) { return std::exp(x); }
 float APS5_VABI exp2f_nid_postfix(float x) { return std::exp2(x); }
+float APS5_VABI sqrtf_nid_postfix(float x) { return std::sqrt(x); }
 float APS5_VABI logf_nid_postfix(float x) { return std::log(x); }
 float APS5_VABI log2f_nid_postfix(float x) { return std::log2(x); }
 double APS5_VABI log10_nid_postfix(double x) { return std::log10(x); }
