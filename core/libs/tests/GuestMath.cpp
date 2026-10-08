@@ -20,6 +20,7 @@ struct LibcFloatConstant { std::uint32_t bits[4]; };
 extern LibcFloatConstant _FInf_nid_postfix;
 extern LibcFloatConstant _FNan_nid_postfix;
 short APS5_VABI _FDtest_nid_postfix(const float*);
+double APS5_VABI sqrt_nid_postfix(double);
 float APS5_VABI fmodf_nid_postfix(float, float);
 float APS5_VABI asinf_nid_postfix(float);
 float APS5_VABI acosf_nid_postfix(float);
@@ -160,9 +161,15 @@ static void CheckFloatClassification() {
     Require(_FDtest_nid_postfix(reinterpret_cast<const float*>(&_FNan_nid_postfix)) == 2);
 }
 
+static void CheckSquareRoot() {
+    Require(sqrt_nid_postfix(0.0) == 0.0 && sqrt_nid_postfix(9.0) == 3.0);
+    Require(std::isnan(sqrt_nid_postfix(-1.0)) && std::isinf(sqrt_nid_postfix(std::numeric_limits<double>::infinity())));
+}
+
 int main() {
     CheckFloatClassification();
     CheckIntegerConversions();
+    CheckSquareRoot();
     Require(atof_nid_postfix(" -12.5tail") == -12.5);
     char* end = nullptr;
     const char input[] = "0x1.8p+2 remainder";
