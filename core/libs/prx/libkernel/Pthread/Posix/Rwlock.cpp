@@ -55,18 +55,28 @@ int APS5_VABI pthread_rwlock_timedrdlock_nid_postfix(PthreadRwlock* rwlock, cons
     if (!abstime) throw std::runtime_error("pthread_rwlock_timedrdlock: null abstime");
     initializeStatic(rwlock, __func__);
     if (scePthreadRwlockTryrdlock(rwlock) == 0) return 0;
-    KernelUseconds usec = 0;
-    if (!PosixThread::RelativeMicroseconds(GUEST_REALTIME_CLOCK, abstime, &usec)) return PosixThread::GUEST_EINVAL;
-    return toPosix(scePthreadRwlockTimedrdlock(rwlock, usec));
+    for (;;) {
+        KernelUseconds usec = 0;
+        if (!PosixThread::RemainingTimeoutChunk(GUEST_REALTIME_CLOCK, abstime, &usec)) return PosixThread::GUEST_EINVAL;
+        const int result = toPosix(scePthreadRwlockTimedrdlock(rwlock, usec));
+        if (result != PosixThread::GUEST_ETIMEDOUT) return result;
+        if (!PosixThread::RemainingTimeoutChunk(GUEST_REALTIME_CLOCK, abstime, &usec)) return PosixThread::GUEST_EINVAL;
+        if (usec == 0) return result;
+    }
 }
 
 int APS5_VABI pthread_rwlock_timedwrlock_nid_postfix(PthreadRwlock* rwlock, const KernelTimespec* abstime) {
     if (!abstime) throw std::runtime_error("pthread_rwlock_timedwrlock: null abstime");
     initializeStatic(rwlock, __func__);
     if (scePthreadRwlockTrywrlock(rwlock) == 0) return 0;
-    KernelUseconds usec = 0;
-    if (!PosixThread::RelativeMicroseconds(GUEST_REALTIME_CLOCK, abstime, &usec)) return PosixThread::GUEST_EINVAL;
-    return toPosix(scePthreadRwlockTimedwrlock(rwlock, usec));
+    for (;;) {
+        KernelUseconds usec = 0;
+        if (!PosixThread::RemainingTimeoutChunk(GUEST_REALTIME_CLOCK, abstime, &usec)) return PosixThread::GUEST_EINVAL;
+        const int result = toPosix(scePthreadRwlockTimedwrlock(rwlock, usec));
+        if (result != PosixThread::GUEST_ETIMEDOUT) return result;
+        if (!PosixThread::RemainingTimeoutChunk(GUEST_REALTIME_CLOCK, abstime, &usec)) return PosixThread::GUEST_EINVAL;
+        if (usec == 0) return result;
+    }
 }
 
 int APS5_VABI pthread_rwlock_tryrdlock_nid_postfix(PthreadRwlock* rwlock) {

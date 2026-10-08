@@ -80,10 +80,17 @@ int waitUntil(PthreadCond* cond, PthreadMutex* mutex, std::optional<std::uint64_
 }
 
 int CondOperations::AbsoluteTimedwait(PthreadCond* cond, PthreadMutex* mutex, const KernelTimespec* abstime) {
-    KernelUseconds usec = 0;
-    if (!PosixThread::RelativeMicroseconds(resolveCond(cond)->_clockid, abstime, &usec))
-        throw std::invalid_argument("Invalid absolute condition variable timeout");
-    return waitUntil(cond, mutex, TimedWait::DeadlineNanos(usec), __builtin_return_address(0));
+    const int clockId = resolveCond(cond)->_clockid;
+    for (;;) {
+        KernelUseconds usec = 0;
+        if (!PosixThread::RemainingTimeoutChunk(clockId, abstime, &usec))
+            throw std::invalid_argument("Invalid absolute condition variable timeout");
+        const int result = waitUntil(cond, mutex, TimedWait::DeadlineNanos(usec), __builtin_return_address(0));
+        if (result != sceTimedOut) return result;
+        if (!PosixThread::RemainingTimeoutChunk(clockId, abstime, &usec))
+            throw std::invalid_argument("Invalid absolute condition variable timeout");
+        if (usec == 0) return result;
+    }
 }
 
 extern "C" {

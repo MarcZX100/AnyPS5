@@ -82,9 +82,14 @@ int APS5_VABI sem_trywait_nid_postfix(void* sem) {
 int APS5_VABI sem_timedwait_nid_postfix(void* sem, const KernelTimespec* abstime) {
     auto* semaphore = Get(sem);
     if (!semaphore) return Fail(PosixThread::GUEST_EINVAL);
-    KernelUseconds usec = 0;
-    if (!PosixThread::RelativeMicroseconds(GUEST_REALTIME_CLOCK, abstime, &usec)) return Fail(PosixThread::GUEST_EINVAL);
-    return WaitFor(semaphore, &usec);
+    for (;;) {
+        KernelUseconds usec = 0;
+        if (!PosixThread::RemainingTimeoutChunk(GUEST_REALTIME_CLOCK, abstime, &usec)) return Fail(PosixThread::GUEST_EINVAL);
+        const int result = WaitFor(semaphore, &usec);
+        if (result == 0 || errno != PosixThread::GUEST_ETIMEDOUT) return result;
+        if (!PosixThread::RemainingTimeoutChunk(GUEST_REALTIME_CLOCK, abstime, &usec)) return Fail(PosixThread::GUEST_EINVAL);
+        if (usec == 0) return Fail(PosixThread::GUEST_ETIMEDOUT);
+    }
 }
 
 int APS5_VABI sem_reltimedwait_np_nid_postfix(void* sem, uint32_t usec) {

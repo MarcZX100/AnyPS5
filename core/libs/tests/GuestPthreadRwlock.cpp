@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
+#include <limits>
 #include <stdexcept>
 #include <thread>
 
@@ -122,6 +123,25 @@ int main() {
     Require(pthread_rwlock_timedrdlock_nid_postfix(&rwlock, &deadline) == 0);
     Require(scePthreadJoin(writer.thread, nullptr) == SCE_OK);
     Require(pthread_rwlock_unlock_nid_postfix(&rwlock) == 0);
+
+    PthreadRwlock farRwlock = nullptr;
+    Holder farReader{&farRwlock, false};
+    Start(farReader);
+    std::atomic<bool> releaseRequested{false};
+    std::thread releaseFarReader([&] {
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        releaseRequested.store(true, std::memory_order_release);
+        farReader.release.store(true);
+    });
+    const KernelTimespec farFuture{std::numeric_limits<std::int64_t>::max(), 0};
+    Require(!releaseRequested.load(std::memory_order_acquire));
+    const int farLockResult = pthread_rwlock_timedwrlock_nid_postfix(&farRwlock, &farFuture);
+    Require(releaseRequested.load(std::memory_order_acquire));
+    releaseFarReader.join();
+    Require(scePthreadJoin(farReader.thread, nullptr) == SCE_OK);
+    Require(farLockResult == 0);
+    Require(pthread_rwlock_unlock_nid_postfix(&farRwlock) == 0);
+    Require(pthread_rwlock_destroy_nid_postfix(&farRwlock) == 0);
 
     bool rejected = false;
     try { pthread_rwlock_timedrdlock_nid_postfix(&rwlock, nullptr); }

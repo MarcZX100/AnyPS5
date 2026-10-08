@@ -1,7 +1,10 @@
 #include "SceTypes.hpp"
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
+#include <limits>
+#include <thread>
 
 extern "C" {
 int APS5_VABI scePthreadCreate(Pthread* thread, const PthreadAttr* attr, PthreadEntry entry, void* arg, const char* name);
@@ -12,7 +15,9 @@ int APS5_VABI scePthreadMutexLock(PthreadMutex* mutex);
 int APS5_VABI scePthreadMutexUnlock(PthreadMutex* mutex);
 int APS5_VABI scePthreadCondInit(PthreadCond* cond, const PthreadCondattr* attr, const char* name);
 int APS5_VABI scePthreadCondDestroy(PthreadCond* cond);
+int APS5_VABI scePthreadCondSignal(PthreadCond* cond);
 int APS5_VABI scePthreadCondTimedwait(PthreadCond* cond, PthreadMutex* mutex, unsigned int usec);
+int APS5_VABI pthread_cond_timedwait_nid_postfix(PthreadCond* cond, PthreadMutex* mutex, const KernelTimespec* abstime);
 int APS5_VABI __cxa_atexit_nid_postfix(void (APS5_VABI *)(void*), void*, void*);
 void APS5_VABI __pthread_cxa_finalize_nid_postfix(void*);
 unsigned int APS5_VABI sceKernelSleep(unsigned int seconds);
@@ -55,6 +60,30 @@ int main() {
 
     Require(scePthreadCondDestroy(&cond) == SCE_OK);
     Require(scePthreadMutexDestroy(&context.mutex) == SCE_OK);
+
+    PthreadMutex absoluteMutex = nullptr;
+    PthreadCond absoluteCond = nullptr;
+    Require(scePthreadMutexInit(&absoluteMutex, nullptr, nullptr) == SCE_OK);
+    Require(scePthreadCondInit(&absoluteCond, nullptr, nullptr) == SCE_OK);
+    Require(scePthreadMutexLock(&absoluteMutex) == SCE_OK);
+    bool signaled = false;
+    std::thread signaler([&] {
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        Require(scePthreadMutexLock(&absoluteMutex) == SCE_OK);
+        signaled = true;
+        Require(scePthreadCondSignal(&absoluteCond) == SCE_OK);
+        Require(scePthreadMutexUnlock(&absoluteMutex) == SCE_OK);
+    });
+    const KernelTimespec farFuture{std::numeric_limits<std::int64_t>::max(), 0};
+    int timedwaitResult = SCE_OK;
+    while (!signaled && timedwaitResult == SCE_OK)
+        timedwaitResult = pthread_cond_timedwait_nid_postfix(&absoluteCond, &absoluteMutex, &farFuture);
+    Require(timedwaitResult == SCE_OK);
+    Require(signaled);
+    Require(scePthreadMutexUnlock(&absoluteMutex) == SCE_OK);
+    signaler.join();
+    Require(scePthreadCondDestroy(&absoluteCond) == SCE_OK);
+    Require(scePthreadMutexDestroy(&absoluteMutex) == SCE_OK);
 
     Require(sceKernelSleep(0) == SCE_OK);
     void* finalizeHandle = reinterpret_cast<void*>(7);
