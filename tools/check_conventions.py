@@ -34,7 +34,9 @@ ALLOWED_COMMENT = re.compile(r"^\s*(#\s*endif\b|}\s*;?\s*//\s*(end\s+)?namespace
 EXPORT = re.compile(r"\bAPS5_VABI\s+(\w+)\s*\(")
 STUB_BODY = re.compile(r"^(?:\(void\)\s*\w+\s*;|static_cast<void>\(\s*\w+\s*\)\s*;)*"
                        r"(?:return\s*\(?\s*(?:-?(?:0x[0-9a-fA-F]+|\d+)[uUlL]*|nullptr|true|false|\w*_OK)?\s*\)?\s*;)?$")
-SYSTEM_DEPENDENCY = re.compile(r"\b(find_package\s*\((?!\s*(Python3|Threads|Git)\b)|pkg_check_modules|pkg_search_module|find_library)\b")
+SYSTEM_DEPENDENCY = re.compile(r"\b(?:pkg_check_modules|pkg_search_module|find_library)\b", re.I)
+FIND_PACKAGE = re.compile(r"\bfind_package\s*\(", re.I)
+ALLOWED_SYSTEM_PACKAGES = {"Python3", "Threads", "Git"}
 TITLE = re.compile(r"\b(PPSA|CUSA)\d{5}\b")
 EXTENSION = re.compile(r"__attribute__|__declspec|#\s*pragma\s+(?!once\b)")
 LINK = re.compile(r"\]\(([^)\s]+)")
@@ -126,9 +128,28 @@ class Check:
 
     def build(self):
         for path, lines in self.files(lambda p: p.name == "CMakeLists.txt" or p.suffix == ".cmake"):
+            added_lines = {number for number, _ in lines}
             for number, text in lines:
                 if SYSTEM_DEPENDENCY.search(text.split("#", 1)[0]):
                     self.report("system-dependency", path, number, text.strip())
+            source = "\n".join(line.split("#", 1)[0] for line in self.show(path).split("\n"))
+            for match in FIND_PACKAGE.finditer(source):
+                command_line = source.count("\n", 0, match.start()) + 1
+                position = match.end()
+                while position < len(source) and source[position].isspace():
+                    position += 1
+                package_start = position
+                while position < len(source) and not source[position].isspace() and source[position] != ")":
+                    position += 1
+                if position == package_start:
+                    continue
+                package_line = source.count("\n", 0, package_start) + 1
+                package = source[package_start:position].strip('"')
+                changed_lines = {command_line, package_line} & added_lines
+                if package in ALLOWED_SYSTEM_PACKAGES or not changed_lines:
+                    continue
+                report_line = package_line if package_line in added_lines else command_line
+                self.report("system-dependency", path, report_line, f"find_package({package})")
         for number, text in self.added.get(".gitmodules", []):
             match = re.match(r"\s*path\s*=\s*(\S+)", text)
             if match and not match.group(1).startswith("3rdparty/"):
