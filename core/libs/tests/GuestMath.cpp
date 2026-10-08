@@ -30,6 +30,7 @@ float APS5_VABI tanf_nid_postfix(float);
 float APS5_VABI log10f_nid_postfix(float);
 float APS5_VABI logbf_nid_postfix(float);
 double APS5_VABI exp2_nid_postfix(double);
+double APS5_VABI expm1_nid_postfix(double);
 double APS5_VABI ldexp_nid_postfix(double, int);
 double APS5_VABI scalbn_nid_postfix(double, int);
 float APS5_VABI scalbnf_nid_postfix(float, int);
@@ -201,6 +202,8 @@ int main() {
     Require(logbf_nid_postfix(-std::numeric_limits<float>::infinity()) == std::numeric_limits<float>::infinity());
     Require(std::isnan(logbf_nid_postfix(std::numeric_limits<float>::quiet_NaN())));
     Require(exp2_nid_postfix(-3.) == 0.125);
+    Require(expm1_nid_postfix(0.0) == 0.0 && expm1_nid_postfix(1e-20) > 0.0);
+    Require(expm1_nid_postfix(-std::numeric_limits<double>::infinity()) == -1.0);
     Require(ldexp_nid_postfix(0.75, 4) == 12.);
     Require(scalbn_nid_postfix(0.75, -2) == 0.1875);
     Require(scalbnf_nid_postfix(0.75f, 4) == 12.f);

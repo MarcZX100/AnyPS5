@@ -42,6 +42,7 @@ double APS5_VABI cbrt_nid_postfix(double x) { return std::cbrt(x); }
 double APS5_VABI asin_nid_postfix(double x) { return std::asin(x); }
 double APS5_VABI acos_nid_postfix(double x) { return std::acos(x); }
 double APS5_VABI exp_nid_postfix(double x) { return std::exp(x); }
+double APS5_VABI expm1_nid_postfix(double x) { return std::expm1(x); }
 double APS5_VABI atan_nid_postfix(double x) { return std::atan(x); }
 double APS5_VABI tan_nid_postfix(double x) { return std::tan(x); }
 double APS5_VABI log2_nid_postfix(double x) { return std::log2(x); }
