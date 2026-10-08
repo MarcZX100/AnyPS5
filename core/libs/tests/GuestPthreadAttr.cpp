@@ -1,11 +1,13 @@
 #include "SceTypes.hpp"
 #include <cstddef>
 #include <cstdlib>
+#include <cstring>
 #include <future>
 
 extern "C" {
 int APS5_VABI scePthreadCreate(Pthread* thread, const PthreadAttr* attr, PthreadEntry entry, void* arg, const char* name);
 int APS5_VABI scePthreadJoin(Pthread thread, void** retval);
+int APS5_VABI scePthreadGetname(Pthread thread, char* name);
 int APS5_VABI scePthreadSetprio(Pthread thread, int prio);
 int APS5_VABI scePthreadSetaffinity(Pthread thread, KernelCpumask mask);
 int APS5_VABI scePthreadAttrInit(PthreadAttr* attr);
@@ -20,6 +22,7 @@ int APS5_VABI scePthreadAttrGetaffinity(const PthreadAttr* attr, KernelCpumask* 
 int APS5_VABI scePthreadAttrGetstacksize(const PthreadAttr* attr, std::size_t* stackSize);
 int APS5_VABI scePthreadAttrGetdetachstate(const PthreadAttr* attr, int* state);
 int APS5_VABI pthread_attr_setstacksize_nid_postfix(PthreadAttr* attr, std::size_t stackSize);
+void APS5_VABI pthread_set_name_np_nid_postfix(Pthread thread, const char* name);
 }
 
 static constexpr int SCE_OK = 0;
@@ -96,6 +99,10 @@ int main() {
     Pthread thread = nullptr;
     Require(scePthreadCreate(&thread, &attr, Worker, &released, nullptr) == SCE_OK);
     Require(scePthreadAttrDestroy(&attr) == SCE_OK);
+    pthread_set_name_np_nid_postfix(thread, "guest-worker");
+    char threadName[64]{};
+    Require(scePthreadGetname(thread, threadName) == SCE_OK);
+    Require(std::strcmp(threadName, "guest-worker") == 0);
 
     auto reported = Query(thread);
     Require(reported.priority == CREATION_PRIORITY);

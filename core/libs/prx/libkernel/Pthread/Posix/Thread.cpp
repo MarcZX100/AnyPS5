@@ -7,6 +7,7 @@
 #include "Common.hpp"
 #include "prx/libkernel/KernelErrors.hpp"
 #include <chrono>
+#include <stdexcept>
 #include <thread>
 
 extern "C" {
@@ -66,6 +67,10 @@ int APS5_VABI pthread_join_nid_postfix(Pthread thread, void** value) {
 
 int APS5_VABI pthread_rename_np_nid_postfix(Pthread thread, const char* name) {
     return PosixThread::ToErrno(scePthreadRename(thread, name));
+}
+
+void APS5_VABI pthread_set_name_np_nid_postfix(Pthread thread, const char* name) {
+    if (scePthreadRename(thread, name) != 0) throw std::invalid_argument("pthread_set_name_np: invalid thread or name");
 }
 
 Pthread APS5_VABI pthread_self_nid_postfix(void) {
