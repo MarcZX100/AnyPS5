@@ -86,6 +86,7 @@ double APS5_VABI modf_nid_postfix(double x, double* integral) { return std::modf
 float APS5_VABI modff_nid_postfix(float x, float* integral) { return std::modf(x, integral); }
 double APS5_VABI tanh_nid_postfix(double x) { return std::tanh(x); }
 float APS5_VABI tanhf_nid_postfix(float x) { return std::tanh(x); }
+float APS5_VABI fabsf_nid_postfix(float x) { return std::fabs(x); }
 float APS5_VABI _FSinh_nid_postfix(float x, float y) { return y * std::sinh(x); }
 float APS5_VABI _FCosh_nid_postfix(float x, float y) { return y * std::cosh(x); }
 
