@@ -20,6 +20,7 @@ struct LibcFloatConstant { std::uint32_t bits[4]; };
 extern LibcFloatConstant _FInf_nid_postfix;
 extern LibcFloatConstant _FNan_nid_postfix;
 short APS5_VABI _FDtest_nid_postfix(const float*);
+double APS5_VABI fabs_nid_postfix(double);
 float APS5_VABI fmodf_nid_postfix(float, float);
 float APS5_VABI asinf_nid_postfix(float);
 float APS5_VABI acosf_nid_postfix(float);
@@ -230,4 +231,7 @@ int main() {
     Require(negativeDenominator.quot == -3 && negativeDenominator.rem == 1);
     const auto minimum = div_nid_postfix(std::numeric_limits<int>::min(), 10);
     Require(minimum.quot == -214748364 && minimum.rem == -8);
+    Require(fabs_nid_postfix(-3.5) == 3.5);
+    Require(fabs_nid_postfix(-0.0) == 0.0 && !std::signbit(fabs_nid_postfix(-0.0)));
+    Require(std::isinf(fabs_nid_postfix(-std::numeric_limits<double>::infinity())));
 }
