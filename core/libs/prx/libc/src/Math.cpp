@@ -37,6 +37,15 @@ int APS5_VABI __isfinitef_nid_postfix(float x) { return std::isfinite(x) ? 1 : 0
 int APS5_VABI __isnormal_nid_postfix(double x) { return std::isnormal(x) ? 1 : 0; }
 int APS5_VABI __isnormalf_nid_postfix(float x) { return std::isnormal(x) ? 1 : 0; }
 int APS5_VABI __isinff_nid_postfix(float x) { return std::isinf(x) ? 1 : 0; }
+int APS5_VABI __fpclassify_nid_postfix(double value) {
+    std::uint64_t bits;
+    std::memcpy(&bits, &value, sizeof(bits));
+    const auto exponent = bits & UINT64_C(0x7ff0000000000000);
+    const auto fraction = bits & UINT64_C(0x000fffffffffffff);
+    if (exponent == UINT64_C(0x7ff0000000000000)) return fraction == 0 ? 0x01 : 0x02;
+    if (exponent == 0) return fraction == 0 ? 0x10 : 0x08;
+    return 0x04;
+}
 
 double APS5_VABI cbrt_nid_postfix(double x) { return std::cbrt(x); }
 double APS5_VABI asin_nid_postfix(double x) { return std::asin(x); }

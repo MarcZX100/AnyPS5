@@ -43,9 +43,25 @@ int APS5_VABI __isfinitef_nid_postfix(float);
 int APS5_VABI __isnormal_nid_postfix(double);
 int APS5_VABI __isnormalf_nid_postfix(float);
 int APS5_VABI __isinff_nid_postfix(float);
+int APS5_VABI __fpclassify_nid_postfix(double);
 std::lldiv_t APS5_VABI lldiv_nid_postfix(long long, long long);
 }
 static void Require(bool value) { if (!value) std::abort(); }
+
+static void CheckDoubleClassification() {
+    const struct { std::uint64_t bits; int classification; } cases[] = {
+        {UINT64_C(0x0000000000000000), 0x10}, {UINT64_C(0x8000000000000000), 0x10},
+        {UINT64_C(0x0000000000000001), 0x08}, {UINT64_C(0x800fffffffffffff), 0x08},
+        {UINT64_C(0x0010000000000000), 0x04}, {UINT64_C(0x3ff0000000000000), 0x04},
+        {UINT64_C(0x7fefffffffffffff), 0x04}, {UINT64_C(0x7ff0000000000000), 0x01},
+        {UINT64_C(0xfff0000000000000), 0x01}, {UINT64_C(0x7ff0000000000001), 0x02},
+        {UINT64_C(0x7ff8000000000000), 0x02},
+    };
+    for (const auto& test : cases) {
+        const double value = std::bit_cast<double>(test.bits);
+        Require(__fpclassify_nid_postfix(value) == test.classification);
+    }
+}
 
 static void CheckIntegerConversions() {
     for (const long long numerator : {4294967301LL, -4294967301LL}) {
@@ -161,6 +177,7 @@ static void CheckFloatClassification() {
 }
 
 int main() {
+    CheckDoubleClassification();
     CheckFloatClassification();
     CheckIntegerConversions();
     Require(atof_nid_postfix(" -12.5tail") == -12.5);
