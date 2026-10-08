@@ -42,6 +42,7 @@ std::int64_t APS5_VABI llround_nid_postfix(double);
 int APS5_VABI __isfinitef_nid_postfix(float);
 int APS5_VABI __isnormal_nid_postfix(double);
 int APS5_VABI __isnormalf_nid_postfix(float);
+float APS5_VABI sinhf_nid_postfix(float);
 int APS5_VABI __isinff_nid_postfix(float);
 std::lldiv_t APS5_VABI lldiv_nid_postfix(long long, long long);
 }
@@ -230,4 +231,7 @@ int main() {
     Require(negativeDenominator.quot == -3 && negativeDenominator.rem == 1);
     const auto minimum = div_nid_postfix(std::numeric_limits<int>::min(), 10);
     Require(minimum.quot == -214748364 && minimum.rem == -8);
+    Require(std::signbit(sinhf_nid_postfix(-0.f)));
+    Require(std::abs(sinhf_nid_postfix(1.f) - 1.1752012f) < 0.000001f);
+    Require(std::isinf(sinhf_nid_postfix(std::numeric_limits<float>::infinity())));
 }
