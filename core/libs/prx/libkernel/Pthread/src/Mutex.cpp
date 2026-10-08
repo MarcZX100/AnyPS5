@@ -50,6 +50,28 @@ PthreadMutex resolveMutex(PthreadMutex* mutex, bool initialize) {
     return created;
 }
 
+KernelUseconds RemainingTimeoutChunk(const KernelTimespec& abstime, std::chrono::system_clock::time_point now) {
+    const auto wholeSeconds = std::chrono::floor<std::chrono::seconds>(now.time_since_epoch());
+    const auto nowSeconds = static_cast<std::int64_t>(wholeSeconds.count());
+    const auto nowNanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch() - wholeSeconds).count();
+    if (abstime.tv_sec < nowSeconds || (abstime.tv_sec == nowSeconds && abstime.tv_nsec <= nowNanoseconds))
+        return 0;
+
+    std::uint64_t seconds = static_cast<std::uint64_t>(abstime.tv_sec) - static_cast<std::uint64_t>(nowSeconds);
+    std::int64_t nanoseconds = abstime.tv_nsec - nowNanoseconds;
+    if (nanoseconds < 0) {
+        --seconds;
+        nanoseconds += 1000000000;
+    }
+
+    constexpr std::uint64_t MicrosecondsPerSecond = 1000000;
+    constexpr auto MaximumUseconds = std::numeric_limits<KernelUseconds>::max();
+    if (seconds > MaximumUseconds / MicrosecondsPerSecond)
+        return MaximumUseconds;
+    const std::uint64_t microseconds = seconds * MicrosecondsPerSecond + static_cast<std::uint64_t>((nanoseconds + 999) / 1000);
+    return microseconds > MaximumUseconds ? MaximumUseconds : static_cast<KernelUseconds>(microseconds);
+}
+
 template<typename TAcquire>
 int acquireMutex(PthreadMutex mutex, TAcquire acquire, int unavailable, bool tryOnly) {
     const auto thread = std::this_thread::get_id();
@@ -78,16 +100,20 @@ int acquireMutex(PthreadMutex mutex, TAcquire acquire, int unavailable, bool try
 }
 
 int MutexOperations::Timedlock(PthreadMutex* mutex, const KernelTimespec* abstime) {
-    if (!abstime || abstime->tv_sec < 0 || abstime->tv_nsec < 0 || abstime->tv_nsec >= 1000000000)
+    if (!abstime || abstime->tv_nsec < 0 || abstime->tv_nsec >= 1000000000)
         throw std::invalid_argument("Invalid absolute mutex timeout");
-    const auto maximum = std::chrono::nanoseconds::max().count();
-    if (abstime->tv_sec > (maximum - abstime->tv_nsec) / 1000000000)
-        throw std::overflow_error("Absolute mutex timeout exceeds the host clock range");
-    const auto duration = std::chrono::nanoseconds(abstime->tv_sec * 1000000000 + abstime->tv_nsec);
-    if (std::chrono::duration<long double>(duration) >= std::chrono::duration<long double>(std::chrono::system_clock::duration::max()))
-        throw std::overflow_error("Absolute mutex timeout exceeds the host clock range");
-    const auto deadline = std::chrono::system_clock::time_point(std::chrono::duration_cast<std::chrono::system_clock::duration>(duration));
-    return acquireMutex(resolveMutex(mutex, true), [&](auto& native) { return native.try_lock_until(deadline); }, sceTimedOut, false);
+    const auto resolved = resolveMutex(mutex, true);
+    for (;;) {
+        const auto timeout = RemainingTimeoutChunk(*abstime, std::chrono::system_clock::now());
+        const auto deadline = TimedWait::DeadlineNanos(timeout);
+        const int result = acquireMutex(resolved, [&](auto& native) {
+            return TimedWait::AcquireUntil(deadline, [&] { return native.try_lock(); }, [&](std::uint64_t microseconds) {
+                return native.try_lock_for(std::chrono::microseconds(microseconds));
+            });
+        }, sceTimedOut, false);
+        if (result != sceTimedOut || RemainingTimeoutChunk(*abstime, std::chrono::system_clock::now()) == 0)
+            return result;
+    }
 }
 
 extern "C" {

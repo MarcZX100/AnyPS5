@@ -1,8 +1,11 @@
 #include "SceTypes.hpp"
+#include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
 #include <stdexcept>
+#include <thread>
 
 extern "C" {
 int APS5_VABI sceKernelCreateSema(KernelSema*, const char*, std::uint32_t, int, int, void*);
@@ -19,6 +22,7 @@ int APS5_VABI pthread_mutexattr_settype_nid_postfix(PthreadMutexattr* attr, int 
 int APS5_VABI pthread_mutexattr_destroy_nid_postfix(PthreadMutexattr* attr);
 int APS5_VABI pthread_mutex_init_nid_postfix(PthreadMutex* mutex, const PthreadMutexattr* attr);
 int APS5_VABI pthread_mutex_lock_nid_postfix(PthreadMutex* mutex);
+int APS5_VABI pthread_mutex_timedlock_nid_postfix(PthreadMutex* mutex, const KernelTimespec* abstime);
 int APS5_VABI pthread_mutex_unlock_nid_postfix(PthreadMutex* mutex);
 int APS5_VABI pthread_mutex_destroy_nid_postfix(PthreadMutex* mutex);
 int APS5_VABI scePthreadMutexattrDestroy(PthreadMutexattr* attr);
@@ -158,4 +162,28 @@ int main() {
     Require(pthread_mutex_lock_nid_postfix(&staticAdaptive) == POSIX_EDEADLK);
     Require(pthread_mutex_unlock_nid_postfix(&staticAdaptive) == 0);
     Require(pthread_mutex_destroy_nid_postfix(&staticAdaptive) == 0);
+
+    PthreadMutex timed = nullptr;
+    Require(pthread_mutex_init_nid_postfix(&timed, nullptr) == 0);
+    std::atomic<bool> locked{false};
+    std::atomic<bool> beginWait{false};
+    std::atomic<bool> ownerReleased{false};
+    std::thread owner([&] {
+        Require(pthread_mutex_lock_nid_postfix(&timed) == 0);
+        locked.store(true, std::memory_order_release);
+        while (!beginWait.load(std::memory_order_acquire)) std::this_thread::yield();
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        ownerReleased.store(true, std::memory_order_release);
+        Require(pthread_mutex_unlock_nid_postfix(&timed) == 0);
+    });
+    while (!locked.load(std::memory_order_acquire)) std::this_thread::yield();
+    beginWait.store(true, std::memory_order_release);
+    Require(!ownerReleased.load(std::memory_order_acquire));
+    const KernelTimespec farFuture{std::numeric_limits<std::int64_t>::max(), 0};
+    const int timedlockResult = pthread_mutex_timedlock_nid_postfix(&timed, &farFuture);
+    Require(ownerReleased.load(std::memory_order_acquire));
+    owner.join();
+    Require(timedlockResult == 0);
+    Require(pthread_mutex_unlock_nid_postfix(&timed) == 0);
+    Require(pthread_mutex_destroy_nid_postfix(&timed) == 0);
 }
