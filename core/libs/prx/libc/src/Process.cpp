@@ -185,4 +185,8 @@ int APS5_VABI at_quick_exit_nid_postfix(GuestExitCallback func) {
     _Exit_nid_postfix(status);
 }
 
+const char* APS5_VABI getprogname_nid_postfix() {
+    return "eboot.bin";
+}
+
 }
