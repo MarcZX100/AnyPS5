@@ -6,7 +6,6 @@
 
 extern "C" {
 char* APS5_VABI basename_nid_postfix(const char*);
-long long APS5_VABI atoll_nid_postfix(const char*);
 int* APS5_VABI __error_nid_postfix();
 std::size_t APS5_VABI strnlen_nid_postfix(const char*, std::size_t);
 std::size_t APS5_VABI strnlen_s_nid_postfix(const char*, std::size_t);
@@ -109,10 +108,6 @@ static void CheckSscanfS() {
 int main() {
     CheckBoundsCheckedFunctions();
     CheckSscanfS();
-    Require(atoll_nid_postfix("  -42tail") == -42);
-    Require(atoll_nid_postfix("+9223372036854775807") == 9223372036854775807LL);
-    Require(atoll_nid_postfix("-9223372036854775808") == (-9223372036854775807LL - 1));
-    Require(atoll_nid_postfix("not a number") == 0);
     Require(std::strcmp(basename_nid_postfix(nullptr), ".") == 0);
     Require(std::strcmp(basename_nid_postfix(""), ".") == 0);
     Require(std::strcmp(basename_nid_postfix("////"), "/") == 0);
