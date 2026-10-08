@@ -6,8 +6,6 @@
 #include "../include/Mutex.hpp"
 #include "Common.hpp"
 #include <atomic>
-#include <chrono>
-#include <limits>
 #include <stdexcept>
 #include <string>
 
@@ -61,11 +59,7 @@ int APS5_VABI pthread_mutex_timedlock_nid_postfix(PthreadMutex* mutex, const Ker
     if (!abstime) throw std::runtime_error("pthread_mutex_timedlock: null abstime");
     if (abstime->tv_nsec < 0 || abstime->tv_nsec >= 1000000000) return POSIX_EINVAL;
     _initializeStatic(mutex, __func__);
-    const auto deadline = std::chrono::seconds(abstime->tv_sec) + std::chrono::nanoseconds(abstime->tv_nsec);
-    const auto now = std::chrono::system_clock::now().time_since_epoch();
-    const auto remaining = std::chrono::duration_cast<std::chrono::microseconds>(deadline - now).count();
-    const auto usec = remaining <= 0 ? 0 : remaining >= std::numeric_limits<KernelUseconds>::max() ? std::numeric_limits<KernelUseconds>::max() : static_cast<KernelUseconds>(remaining);
-    return PosixThread::ToErrno(scePthreadMutexTimedlock(mutex, usec));
+    return PosixThread::ToErrno(MutexOperations::Timedlock(mutex, abstime));
 }
 
 int APS5_VABI pthread_mutex_trylock_nid_postfix(PthreadMutex* mutex) {
