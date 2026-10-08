@@ -23,7 +23,8 @@ DT_OS_RELASZ = 0x61000031
 DT_OS_RELAENT = 0x61000033
 
 
-def fixture(os_tags=False, str_size=16, needed_offset=1, symbol_offset=8, table_bytes=None, outside_bytes=b""):
+def fixture(os_tags=False, str_size=16, needed_offset=1, symbol_offset=8, symtab_offset=0x620,
+            symbol_index=1, table_bytes=None, outside_bytes=b""):
     image = bytearray(0x1000)
     image[:16] = b"\x7fELF\x02\x01\x01" + bytes(9)
     struct.pack_into("<HHIQQQIHHHHHH", image, 16,
@@ -33,7 +34,7 @@ def fixture(os_tags=False, str_size=16, needed_offset=1, symbol_offset=8, table_
         (DT_NEEDED, needed_offset),
         (DT_OS_STRTAB if os_tags else DT_STRTAB, 0x600),
         (DT_OS_STRSZ if os_tags else DT_STRSZ, str_size),
-        (DT_OS_SYMTAB if os_tags else DT_SYMTAB, 0x620),
+        (DT_OS_SYMTAB if os_tags else DT_SYMTAB, symtab_offset),
         (DT_OS_SYMENT if os_tags else DT_SYMENT, 24),
         (DT_OS_SYMTABSZ, 48),
         (DT_OS_RELA if os_tags else DT_RELA, 0x700),
@@ -49,8 +50,9 @@ def fixture(os_tags=False, str_size=16, needed_offset=1, symbol_offset=8, table_
                      0x61000000, 0, 0, 0, 0, len(image), len(image), 1)
     for index, tag in enumerate(tags):
         struct.pack_into("<qQ", image, 0x400 + index * 16, *tag)
-    struct.pack_into("<QQq", image, 0x700, 0x300, (1 << 32) | 6, 0)
-    struct.pack_into("<I", image, 0x620 + 24, symbol_offset)
+    struct.pack_into("<QQq", image, 0x700, 0x300, (symbol_index << 32) | 6, 0)
+    if symtab_offset <= len(image) - 28:
+        struct.pack_into("<I", image, symtab_offset + 24, symbol_offset)
     if table_bytes is None:
         table_bytes = b"\x00lib.so\x00symbol\x00\x00"
     image[0x600:0x600 + len(table_bytes)] = table_bytes
@@ -84,6 +86,13 @@ def main():
             "Dynamic string offset is outside DT_STRSZ")
         run(relinker, work, "symbol-offset", fixture(symbol_offset=16, outside_bytes=b"symbol\x00"),
             "Dynamic string offset is outside DT_STRSZ")
+        run(relinker, work, "symbol-table-outside", fixture(os_tags=True, symtab_offset=len(fixture()) + 1),
+            "Symbol table entry out of bounds")
+        run(relinker, work, "symbol-table-wrap", fixture(os_tags=True, symtab_offset=0xffffffffffffffe8),
+            "Symbol table entry out of bounds")
+        run(relinker, work, "symbol-name-offset-truncated",
+            fixture(os_tags=True, symtab_offset=0xffe, symbol_index=0),
+            "Symbol table entry out of bounds")
         run(relinker, work, "zero-size", fixture(str_size=0),
             "Dynamic string offset is outside DT_STRSZ")
         run(relinker, work, "huge-size", fixture(str_size=0xffffffffffffffff),

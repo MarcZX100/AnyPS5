@@ -215,9 +215,11 @@ RelinkResult RelinkerPipeline::Relink(const std::vector<std::uint8_t>& sourceElf
                 continue;
             }
 
+            constexpr FileByteOffset nameOffsetSize = sizeof(std::uint32_t);
+            if (dynSymTabOffset > raw.size() || raw.size() - dynSymTabOffset < nameOffsetSize ||
+                symIdx > (raw.size() - dynSymTabOffset - nameOffsetSize) / symEntSize)
+                throw RelinkerException("Symbol table entry out of bounds", dynSymTabOffset);
             const FileByteOffset symOff = dynSymTabOffset + static_cast<FileByteOffset>(symIdx) * symEntSize;
-            if (symOff + 4 > raw.size())
-                throw RelinkerException("Symbol table entry out of bounds", symOff);
 
             std::uint32_t nameOff = 0;
             std::memcpy(&nameOff, raw.data() + symOff, 4);
