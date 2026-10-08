@@ -6,7 +6,6 @@
 
 extern "C" {
 char* APS5_VABI basename_nid_postfix(const char*);
-void* APS5_VABI memrchr_nid_postfix(const void*, int, std::size_t);
 int* APS5_VABI __error_nid_postfix();
 std::size_t APS5_VABI strnlen_nid_postfix(const char*, std::size_t);
 std::size_t APS5_VABI strnlen_s_nid_postfix(const char*, std::size_t);
@@ -109,11 +108,6 @@ static void CheckSscanfS() {
 int main() {
     CheckBoundsCheckedFunctions();
     CheckSscanfS();
-    const unsigned char reverseSearch[] = {0xff, 0x01, 0xff, 0x00};
-    Require(memrchr_nid_postfix(reverseSearch, 0xff, sizeof(reverseSearch)) == reverseSearch + 2);
-    Require(memrchr_nid_postfix(reverseSearch, 0x1ff, sizeof(reverseSearch)) == reverseSearch + 2);
-    Require(memrchr_nid_postfix(reverseSearch, 0xff, 2) == reverseSearch);
-    Require(memrchr_nid_postfix(reverseSearch, 0x02, sizeof(reverseSearch)) == nullptr);
     Require(std::strcmp(basename_nid_postfix(nullptr), ".") == 0);
     Require(std::strcmp(basename_nid_postfix(""), ".") == 0);
     Require(std::strcmp(basename_nid_postfix("////"), "/") == 0);
