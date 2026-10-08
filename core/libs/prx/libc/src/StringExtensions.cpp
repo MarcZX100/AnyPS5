@@ -73,4 +73,17 @@ char* APS5_VABI strtok_nid_postfix(char* text, const char* delimiters) {
     return strtok_r_nid_postfix(text, delimiters, &state);
 }
 
+char* APS5_VABI strsep_nid_postfix(char** string, const char* delimiters) {
+    if (*string == nullptr) return nullptr;
+    char* token = *string;
+    char* separator = std::strpbrk(token, delimiters);
+    if (separator == nullptr) {
+        *string = nullptr;
+    } else {
+        *separator = '\0';
+        *string = separator + 1;
+    }
+    return token;
+}
+
 }
