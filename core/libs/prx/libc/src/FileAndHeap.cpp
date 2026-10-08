@@ -81,7 +81,7 @@ FileStream* APS5_VABI fopen_nid_postfix(const char* filename, const char* mode) 
     std::unique_ptr<std::FILE, decltype(&std::fclose)> handle(std::fopen(abs_path.c_str(), NativeFileMode(mode).c_str()), std::fclose);
     if (!handle) {
         const int error = errno;
-        if (error == ENOENT) {
+        if (error == ENOENT || error == EINVAL) {
             errno = error;
             return nullptr;
         }
@@ -113,7 +113,8 @@ int APS5_VABI fopen_s_nid_postfix(FileStream** result, const char* filename, con
     constexpr int GuestEnoent = 2;
     if (!result || !filename || !mode) return GuestEinval;
     *result = fopen_nid_postfix(filename, mode);
-    return *result ? 0 : GuestEnoent;
+    if (*result) return 0;
+    return errno == EINVAL ? GuestEinval : GuestEnoent;
 }
 
 int APS5_VABI fclose_nid_postfix(FileStream* stream) {
