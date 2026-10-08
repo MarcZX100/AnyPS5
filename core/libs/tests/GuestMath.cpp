@@ -24,6 +24,7 @@ float APS5_VABI fmodf_nid_postfix(float, float);
 float APS5_VABI asinf_nid_postfix(float);
 float APS5_VABI acosf_nid_postfix(float);
 float APS5_VABI atan2f_nid_postfix(float, float);
+float APS5_VABI coshf_nid_postfix(float);
 float APS5_VABI hypotf_nid_postfix(float, float);
 double APS5_VABI hypot_nid_postfix(double, double);
 float APS5_VABI tanf_nid_postfix(float);
@@ -180,6 +181,9 @@ int main() {
     Require(std::abs(asinf_nid_postfix(0.5f) - 0.5235988f) < 0.000001f);
     Require(std::abs(acosf_nid_postfix(0.5f) - 1.0471976f) < 0.000001f);
     Require(std::abs(atan2f_nid_postfix(1.f, -1.f) - 2.3561945f) < 0.000001f);
+    Require(coshf_nid_postfix(0.f) == 1.f);
+    Require(std::abs(coshf_nid_postfix(1.f) - 1.5430806f) < 0.000001f);
+    Require(std::isinf(coshf_nid_postfix(std::numeric_limits<float>::infinity())));
     Require(tanf_nid_postfix(0.f) == 0.f);
     Require(hypot_nid_postfix(3.0, 4.0) == 5.0 && hypot_nid_postfix(-3.0, -4.0) == 5.0 && hypotf_nid_postfix(3.f, -4.f) == 5.f);
     Require(std::abs(hypot_nid_postfix(1e308, 1e308) / 1.4142135623730951e308 - 1.0) < 1e-15);
