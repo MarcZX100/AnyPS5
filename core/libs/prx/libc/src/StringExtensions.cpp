@@ -20,6 +20,30 @@ char* APS5_VABI basename_nid_postfix(const char* path) {
     return buffer;
 }
 
+char* APS5_VABI dirname_nid_postfix(char* path) {
+    thread_local char dot[] = ".";
+    thread_local char slash[] = "/";
+    if (path == nullptr || *path == '\0') {
+        dot[0] = '.';
+        return dot;
+    }
+
+    auto length = std::strlen(path);
+    while (length > 0 && path[length - 1] == '/') --length;
+    if (length == 0) return slash;
+    path[length] = '\0';
+
+    auto separator = length;
+    while (separator > 0 && path[separator - 1] != '/') --separator;
+    if (separator == 0) {
+        dot[0] = '.';
+        return dot;
+    }
+    while (separator > 1 && path[separator - 1] == '/') --separator;
+    path[separator] = '\0';
+    return path;
+}
+
 std::size_t APS5_VABI strnlen_nid_postfix(const char* text, std::size_t limit) {
     std::size_t length = 0;
     while (length < limit && text[length] != '\0') ++length;

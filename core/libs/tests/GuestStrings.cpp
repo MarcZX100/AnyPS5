@@ -6,6 +6,7 @@
 
 extern "C" {
 char* APS5_VABI basename_nid_postfix(const char*);
+char* APS5_VABI dirname_nid_postfix(char*);
 int* APS5_VABI __error_nid_postfix();
 std::size_t APS5_VABI strnlen_nid_postfix(const char*, std::size_t);
 std::size_t APS5_VABI strnlen_s_nid_postfix(const char*, std::size_t);
@@ -108,6 +109,19 @@ static void CheckSscanfS() {
 int main() {
     CheckBoundsCheckedFunctions();
     CheckSscanfS();
+    Require(std::strcmp(dirname_nid_postfix(nullptr), ".") == 0);
+    char emptyPath[] = "";
+    Require(std::strcmp(dirname_nid_postfix(emptyPath), ".") == 0);
+    char leaf[] = "file";
+    Require(std::strcmp(dirname_nid_postfix(leaf), ".") == 0);
+    char nested[] = "one/two///";
+    Require(std::strcmp(dirname_nid_postfix(nested), "one") == 0 && std::strcmp(nested, "one") == 0);
+    char absolute[] = "/one/two";
+    Require(std::strcmp(dirname_nid_postfix(absolute), "/one") == 0);
+    char rootChild[] = "/file";
+    Require(std::strcmp(dirname_nid_postfix(rootChild), "/") == 0);
+    char onlySlashes[] = "////";
+    Require(std::strcmp(dirname_nid_postfix(onlySlashes), "/") == 0);
     Require(std::strcmp(basename_nid_postfix(nullptr), ".") == 0);
     Require(std::strcmp(basename_nid_postfix(""), ".") == 0);
     Require(std::strcmp(basename_nid_postfix("////"), "/") == 0);
