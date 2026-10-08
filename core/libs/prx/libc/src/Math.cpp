@@ -23,6 +23,7 @@ double APS5_VABI hypot_nid_postfix(double x, double y) { return std::hypot(x, y)
 float APS5_VABI tanf_nid_postfix(float x) { return std::tan(x); }
 float APS5_VABI log10f_nid_postfix(float x) { return std::log10(x); }
 float APS5_VABI logbf_nid_postfix(float x) { return std::logb(x); }
+float APS5_VABI log1pf_nid_postfix(float x) { return std::log1p(x); }
 double APS5_VABI exp2_nid_postfix(double x) { return std::exp2(x); }
 double APS5_VABI ldexp_nid_postfix(double x, int exponent) { return std::ldexp(x, exponent); }
 double APS5_VABI scalbn_nid_postfix(double x, int exponent) { return std::scalbn(x, exponent); }
