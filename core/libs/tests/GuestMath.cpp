@@ -37,6 +37,7 @@ double APS5_VABI frexp_nid_postfix(double, int*);
 float APS5_VABI frexpf_nid_postfix(float, int*);
 std::int64_t APS5_VABI lround_nid_postfix(double);
 std::div_t APS5_VABI div_nid_postfix(int, int);
+double APS5_VABI fma_nid_postfix(double, double, double);
 std::int64_t APS5_VABI lroundf_nid_postfix(float);
 std::int64_t APS5_VABI llround_nid_postfix(double);
 int APS5_VABI __isfinitef_nid_postfix(float);
@@ -140,6 +141,13 @@ static void CheckIntegerConversions() {
     *__error_nid_postfix() = 0;
 }
 
+static void CheckFusedMultiplyAdd() {
+    const double delta = std::ldexp(1.0, -27);
+    Require(fma_nid_postfix(1.0 + delta, 1.0 - delta, -1.0) == -std::ldexp(1.0, -54));
+    Require(fma_nid_postfix(3.0, 4.0, 5.0) == 17.0);
+    Require(std::isnan(fma_nid_postfix(std::numeric_limits<double>::infinity(), 0.0, 1.0)));
+}
+
 static void CheckFloatClassification() {
     Require(_FInf_nid_postfix.bits[0] == 0x7f800000u && _FNan_nid_postfix.bits[0] == 0x7fc00000u);
     for (int word = 1; word < 4; ++word) Require(_FInf_nid_postfix.bits[word] == 0 && _FNan_nid_postfix.bits[word] == 0);
@@ -162,6 +170,7 @@ static void CheckFloatClassification() {
 
 int main() {
     CheckFloatClassification();
+    CheckFusedMultiplyAdd();
     CheckIntegerConversions();
     Require(atof_nid_postfix(" -12.5tail") == -12.5);
     char* end = nullptr;
