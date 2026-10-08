@@ -43,6 +43,7 @@ int APS5_VABI __isfinitef_nid_postfix(float);
 int APS5_VABI __isnormal_nid_postfix(double);
 int APS5_VABI __isnormalf_nid_postfix(float);
 int APS5_VABI __isinff_nid_postfix(float);
+int APS5_VABI __fpclassifyf_nid_postfix(float);
 std::lldiv_t APS5_VABI lldiv_nid_postfix(long long, long long);
 }
 static void Require(bool value) { if (!value) std::abort(); }
@@ -158,6 +159,15 @@ static void CheckFloatClassification() {
     }
     Require(_FDtest_nid_postfix(reinterpret_cast<const float*>(&_FInf_nid_postfix)) == 1);
     Require(_FDtest_nid_postfix(reinterpret_cast<const float*>(&_FNan_nid_postfix)) == 2);
+    const struct { std::uint32_t bits; int classification; } classifications[] = {
+        {0x00000000u, 0x10}, {0x80000000u, 0x10}, {0x00000001u, 0x08}, {0x807fffffu, 0x08},
+        {0x00800000u, 0x04}, {0x3f800000u, 0x04}, {0x7f7fffffu, 0x04},
+        {0x7f800000u, 0x01}, {0xff800000u, 0x01}, {0x7f800001u, 0x02}, {0x7fc00000u, 0x02}
+    };
+    for (const auto& test : classifications) {
+        const float value = std::bit_cast<float>(test.bits);
+        Require(__fpclassifyf_nid_postfix(value) == test.classification);
+    }
 }
 
 int main() {

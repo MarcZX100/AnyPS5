@@ -107,6 +107,16 @@ short APS5_VABI _FDtest_nid_postfix(const float* value) {
 int APS5_VABI __isnanf_nid_postfix(float x) { return std::isnan(x) ? 1 : 0; }
 int APS5_VABI __signbitf_nid_postfix(float x) { return std::signbit(x) ? 1 : 0; }
 
+int APS5_VABI __fpclassifyf_nid_postfix(float value) {
+    std::uint32_t bits;
+    std::memcpy(&bits, &value, sizeof(bits));
+    const auto exponent = bits & 0x7f800000u;
+    const auto fraction = bits & 0x007fffffu;
+    if (exponent == 0x7f800000u) return fraction == 0 ? 0x01 : 0x02;
+    if (exponent == 0) return fraction == 0 ? 0x10 : 0x08;
+    return 0x04;
+}
+
 static std::mutex g_randLock;
 static std::uint32_t g_randState = 1;
 
