@@ -592,7 +592,7 @@ configure_windows_unwind(agc_driver_bda_device_tests)
 if(BUILD_TESTING)
     set_target_properties(agc_driver_bda_device_tests PROPERTIES EXCLUDE_FROM_ALL OFF)
     add_test(NAME agc_bda_cross_range COMMAND agc_driver_bda_device_tests --cross-range-only)
-    set_tests_properties(agc_bda_cross_range PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    set_tests_properties(agc_bda_cross_range PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
     if(WIN32)
         set_tests_properties(agc_bda_cross_range PROPERTIES ENVIRONMENT_MODIFICATION
             "PATH=path_list_prepend:$<TARGET_FILE_DIR:libc>")
