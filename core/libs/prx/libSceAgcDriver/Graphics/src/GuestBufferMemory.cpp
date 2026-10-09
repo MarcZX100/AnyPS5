@@ -137,6 +137,7 @@ bool addressSpaceCacheEnabled() {
 struct HostImports {
     std::mutex mutex;
     VkDevice device = VK_NULL_HANDLE;
+    Context context {};
     PFN_vkDestroyBuffer destroyBuffer = nullptr;
     PFN_vkFreeMemory freeMemory = nullptr;
     std::map<std::uint64_t, HostImport> imports;
@@ -503,6 +504,7 @@ void refreshImports(const Context& context, HostImports& state, const GuestAlloc
         state.refreshedGeneration = 0;
         ++state.epoch;
     }
+    state.context = context;
     const auto generation = GuestAllocations::GuestAllocationsGeneration_nid_postfix();
     if (generation == state.refreshedGeneration) return;
     state.refreshedGeneration = generation;
@@ -1078,10 +1080,11 @@ SnapshotStats& Snapshots() {
     return stats;
 }
 
-bool WaitForLeases() noexcept {
+bool WaitForLeasesAndImports(std::uintptr_t address, std::size_t bytes) noexcept {
     const auto start = std::chrono::steady_clock::now();
     bool synced = false;
     bool drained = false;
+    bool retiredImport = false;
     // A range pinned only by the cached address space is released by dropping the cache's
     // reference: no GPU wait, no device lock (the mutating thread may be a driver thread holding
     // it). The registry rescans; a range still pinned by a build or a batch holding the space comes
@@ -1098,7 +1101,40 @@ bool WaitForLeases() noexcept {
         return true;
     }
     if (GuestMemory::GpuMutex().HeldByThisThread()) {
-        std::this_thread::yield();
+        try {
+            auto* recorder = Recorder::Active();
+            if (recorder != nullptr && !recorder->Idle()) {
+                Recorder::CountSync(4);
+                recorder->Sync();
+                synced = true;
+                drained = true;
+            }
+            const auto end = static_cast<std::uint64_t>(address) + bytes;
+            auto& imports = Imports();
+            const auto lease = GuestAllocations::GuestAllocationsAcquire_nid_postfix();
+            {
+                std::lock_guard importsLock(imports.mutex);
+                for (auto it = imports.imports.begin(); it != imports.imports.end();) {
+                    const auto base = it->first;
+                    if (base >= end || address >= base + it->second.bytes) {
+                        ++it;
+                        continue;
+                    }
+                    const auto next = std::next(it);
+                    retireImport(imports.context, imports, it, lease);
+                    it = next;
+                    retiredImport = true;
+                }
+            }
+            if (retiredImport && recorder != nullptr && !recorder->Idle()) {
+                Recorder::CountSync(4);
+                recorder->Sync();
+                synced = true;
+                drained = true;
+            }
+        } catch (const std::exception& error) {
+            std::fprintf(stderr, "[gpu] lease wait failed: %s\n", error.what());
+        }
     } else {
         try {
             std::lock_guard lock(GuestMemory::GpuMutex());
@@ -1122,6 +1158,48 @@ bool WaitForLeases() noexcept {
                 // yet to record (a test's, or a build whose worker gave up the lock); give it time.
                 std::this_thread::yield();
             }
+
+            const auto end = static_cast<std::uint64_t>(address) + bytes;
+            auto& imports = Imports();
+            bool overlapsImport = false;
+            {
+                std::lock_guard importsLock(imports.mutex);
+                for (const auto& [base, entry] : imports.imports) {
+                    if (base < end && address < base + entry.bytes) {
+                        overlapsImport = true;
+                        break;
+                    }
+                }
+            }
+            if (overlapsImport) {
+                if (recorder != nullptr && !recorder->Idle()) {
+                    Recorder::CountSync(4);
+                    recorder->Sync();
+                    synced = true;
+                    drained = true;
+                }
+                const auto lease = GuestAllocations::GuestAllocationsAcquire_nid_postfix();
+                {
+                    std::lock_guard importsLock(imports.mutex);
+                    for (auto it = imports.imports.begin(); it != imports.imports.end();) {
+                        const auto base = it->first;
+                        if (base >= end || address >= base + it->second.bytes) {
+                            ++it;
+                            continue;
+                        }
+                        const auto next = std::next(it);
+                        retireImport(imports.context, imports, it, lease);
+                        it = next;
+                        retiredImport = true;
+                    }
+                }
+                if (retiredImport && recorder != nullptr && !recorder->Idle()) {
+                    Recorder::CountSync(4);
+                    recorder->Sync();
+                    synced = true;
+                    drained = true;
+                }
+            }
         } catch (const std::exception& error) {
             std::fprintf(stderr, "[gpu] lease wait failed: %s\n", error.what());
         }
@@ -1132,12 +1210,12 @@ bool WaitForLeases() noexcept {
     if (synced) ++state.stats.contentionSyncs;
     if (drained) ++state.stats.contentionDrains;
     state.stats.contentionMs += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
-    return synced;
+    return synced || retiredImport;
 }
 
 void ensurePinWaiter() {
     static const bool registered = [] {
-        GuestAllocations::GuestAllocationsSetPinWaiter_nid_postfix(&WaitForLeases);
+        GuestAllocations::GuestAllocationsSetPinWaiter_nid_postfix(&WaitForLeasesAndImports);
         return true;
     }();
     static_cast<void>(registered);
@@ -1243,6 +1321,7 @@ void ClearHostImports(VkDevice device) {
     state.imports.clear();
     state.failed.clear();
     state.device = VK_NULL_HANDLE;
+    state.context = {};
     state.refreshedGeneration = 0;
     ++state.epoch;
 }
@@ -1418,6 +1497,7 @@ void SetImportWatch(const Context& context, ImportWatch watch) {
 
 const HostImport* HostImportFor(const Context& context, std::uint64_t address, std::size_t bytes) {
     if (context.hostImportAlignment == 0 || bytes == 0 || bytes > std::numeric_limits<std::uint64_t>::max() - address) return nullptr;
+    ensurePinWaiter();
     auto& state = Imports();
     std::lock_guard lock(state.mutex);
     // A hit is only valid while the registry has not changed since the imports were reconciled.
