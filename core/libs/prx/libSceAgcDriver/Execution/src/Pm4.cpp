@@ -354,6 +354,12 @@ void Validate(std::span<const std::uint32_t> packet, std::uint32_t queue) {
                     require(eventIndex == 1, "invalid occlusion counter dump event index");
                     require(address(packet[2], packet[3]) != 0 && (packet[2] & 7u) == 0, "null or misaligned occlusion counter dump address");
                     break;
+                case 0x38:
+                    graphics();
+                    size(4);
+                    require(eventIndex == 1, "invalid cache flush timestamp event index");
+                    require(address(packet[2], packet[3]) != 0 && (packet[2] & 7u) == 0, "null or misaligned cache flush timestamp address");
+                    break;
                 default: throw std::runtime_error("EVENT_WRITE event type " + std::to_string(eventType) + " is not implemented");
             }
             break;
@@ -363,11 +369,13 @@ void Validate(std::span<const std::uint32_t> packet, std::uint32_t queue) {
             const auto controlMask = packet.size() == 8 ? 0x86287fc3u : 0xfeecfffbu;
             require((packet[1] & ~controlMask) == 0, "unsupported ACQUIRE_MEM control flags");
             require(queue == 0 || (packet[1] & 0x06287fc3u) == 0, "graphics cache operation in compute queue");
-            require(packet[3] == 0 && packet[5] == 0, "ACQUIRE_MEM ranges above 40 bits are not implemented");
             require(packet[6] <= 0xffffu, "invalid ACQUIRE_MEM poll interval");
-            const auto base = static_cast<std::uint64_t>(packet[4]) << 8u;
-            const auto bytes = static_cast<std::uint64_t>(packet[2]) << 8u;
-            require(bytes <= (1ull << 40u) - base, "ACQUIRE_MEM range exceeds 40-bit address space");
+            require(packet[3] <= 0xffu && packet[5] <= 0xffu, "ACQUIRE_MEM range exceeds 48-bit address space");
+            const auto baseUnits = (static_cast<std::uint64_t>(packet[5]) << 32u) | packet[4];
+            const auto sizeUnits = (static_cast<std::uint64_t>(packet[3]) << 32u) | packet[2];
+            const auto base = baseUnits << 8u;
+            const auto bytes = sizeUnits << 8u;
+            require(bytes <= (1ull << 48u) - base, "ACQUIRE_MEM range exceeds 48-bit address space");
             if (packet.size() == 8) {
                 require((packet[7] & ~0x3ffffu) == 0, "unsupported ACQUIRE_MEM GCR flags");
                 require((packet[7] & 0x2000u) == 0, "ACQUIRE_MEM cache discard is not implemented");
