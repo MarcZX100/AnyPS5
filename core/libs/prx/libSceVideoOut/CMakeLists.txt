@@ -40,7 +40,11 @@ endif()
 
 if(BUILD_TESTING)
     add_test_executable(guest_video_out_wqhd_detection_tests ${LIBS_INCLUDE_DIR}/tests/GuestVideoOutWqhdDetection.cpp)
-    target_include_directories(guest_video_out_wqhd_detection_tests PRIVATE ${LIBS_INCLUDE_DIR})
+    target_include_directories(guest_video_out_wqhd_detection_tests PRIVATE
+        ${LIBS_INCLUDE_DIR}
+        ${PROJECT_SOURCE_DIR}/3rdparty/SDL2/include
+        ${CMAKE_BINARY_DIR}/include/SDL2
+    )
     target_link_libraries(guest_video_out_wqhd_detection_tests PRIVATE libSceVideoOut libSceAgcDriver libkernel libc)
     configure_windows_unwind(guest_video_out_wqhd_detection_tests)
     add_test(NAME guest_video_out_wqhd_detection COMMAND guest_video_out_wqhd_detection_tests)
