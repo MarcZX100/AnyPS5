@@ -193,6 +193,9 @@ int main() {
     Require(inetAddr("255.255.255.255", {255, 255, 255, 255}));
     Require(inetAddr("4294967296", {0, 0, 0, 0}));
     Require(inetAddr("18446744073709551617", {0, 0, 0, 1}));
+    for (const char* address : {"0.0.0.0", "127.0.0.1", "192.0.2.42", "255.255.255.255"}) {
+        Require(std::strcmp(__inet_ntoa_nid_postfix(__inet_addr_nid_postfix(address)), address) == 0);
+    }
     char first[] = ",a,,b,";
     char second[] = "x:y";
     char* firstState = nullptr;
