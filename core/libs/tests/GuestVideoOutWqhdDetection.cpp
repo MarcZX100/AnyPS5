@@ -1,4 +1,5 @@
 #include "SceTypes.hpp"
+#include "SDL.h"
 #include "prx/libc/include/Shutdown.hpp"
 #include <cstdlib>
 #include <cstring>
@@ -33,6 +34,11 @@ static bool SameStatus(const VideoOutOutputStatus& a, const VideoOutOutputStatus
 int main() {
     const int handle = sceVideoOutOpen(SYSTEM_USER, MAIN_BUS, 0, nullptr);
     Require(handle > 0);
+
+    const char* directInput = SDL_GetHint(SDL_HINT_DIRECTINPUT_ENABLED);
+    const char* expectedDirectInput = std::getenv(SDL_HINT_DIRECTINPUT_ENABLED);
+    if (expectedDirectInput == nullptr) expectedDirectInput = "0";
+    Require(directInput != nullptr && std::strcmp(directInput, expectedDirectInput) == 0);
 
     VideoOutOutputStatus before{};
     Require(sceVideoOutGetOutputStatus(handle, &before) == 0);
