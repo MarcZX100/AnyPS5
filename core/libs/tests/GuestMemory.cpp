@@ -127,6 +127,30 @@ static void CheckNamedAndHintedMappings() {
     Require(sceKernelMunmap(first, length) == 0);
 }
 
+static void CheckVirtualQueryAfterPartialUnmap() {
+    constexpr std::size_t page = 0x4000;
+    constexpr int accessDenied = static_cast<int>(0x8002000du);
+    void* mapped = nullptr;
+    Require(sceKernelMapFlexibleMemory(&mapped, page * 3, 3, 0) == 0);
+    auto* bytes = static_cast<unsigned char*>(mapped);
+    const auto start = reinterpret_cast<std::uintptr_t>(mapped);
+    VirtualQueryInfo info{};
+
+    Require(sceKernelMprotect(bytes + page, page, 1) == 0);
+    Require(sceKernelVirtualQuery(bytes + page, 0, &info, sizeof(info)) == 0);
+    Require(info.start == start && info.end == start + page * 3);
+    Require(sceKernelMunmap(bytes + page, page) == 0);
+    Require(sceKernelVirtualQuery(bytes, 0, &info, sizeof(info)) == 0);
+    Require(info.start == start && info.end == start + page);
+    Require(sceKernelVirtualQuery(bytes + page, 0, &info, sizeof(info)) == accessDenied);
+    Require(sceKernelVirtualQuery(bytes + page, 1, &info, sizeof(info)) == 0);
+    Require(info.start == start + page * 2 && info.end == start + page * 3);
+    Require(sceKernelVirtualQuery(bytes + page * 2, 0, &info, sizeof(info)) == 0);
+    Require(info.start == start + page * 2 && info.end == start + page * 3);
+    Require(sceKernelMunmap(bytes, page) == 0);
+    Require(sceKernelMunmap(bytes + page * 2, page) == 0);
+}
+
 static void CheckAudioCoprocessorProtection() {
     constexpr std::size_t length = 0x4000;
     void* writable = nullptr;
@@ -1065,6 +1089,7 @@ static void CheckDirectMemoryWriteWatch() {
 int main() {
     CheckReleaseFlexibleMemory();
     CheckNamedAndHintedMappings();
+    CheckVirtualQueryAfterPartialUnmap();
     CheckInternalNamedFlexibleMapping();
     CheckBatchMapStopsAtInvalidEntry();
     CheckCheckedReleaseDirectMemory();

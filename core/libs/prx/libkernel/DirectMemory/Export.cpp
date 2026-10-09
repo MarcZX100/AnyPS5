@@ -228,9 +228,6 @@ int APS5_VABI sceKernelVirtualQuery(const void* addr, int flags, VirtualQueryInf
  if (!info || info_size < sizeof(VirtualQueryInfo)) return SCE_KERNEL_ERROR_EINVAL;
  memset(info, 0, sizeof(VirtualQueryInfo));
  const auto address = reinterpret_cast<uintptr_t>(addr);
- // The mapping that contains the address, or with SCE_KERNEL_VQ_FIND_NEXT (flags bit 0) the first
- // mapping at or above it: titles walk their mappings and check that a mapping covers a whole
- // allocation, so the answer must be the registered allocation, not a page.
  constexpr int findNext = 1;
  std::uintptr_t reservedStart = 0;
  std::uintptr_t reservedEnd = 0;
@@ -240,17 +237,36 @@ int APS5_VABI sceKernelVirtualQuery(const void* addr, int flags, VirtualQueryInf
   return 0;
  }
  const auto lease = GuestAllocations::GuestAllocationsAcquire_nid_postfix();
- const GuestAllocations::Range* best = nullptr;
- for (const auto& range : lease) {
-  const auto begin = range->allocationAddress;
-  const auto end = begin + range->allocationBytes;
-  if (address >= begin && address < end) { best = range.get(); break; }
-  if ((flags & findNext) != 0 && begin > address && (best == nullptr || begin < best->allocationAddress)) best = range.get();
+ std::size_t bestIndex = lease.size();
+ for (std::size_t index = 0; index < lease.size(); ++index) {
+  const auto& range = *lease[index];
+  const auto begin = range.address;
+  const auto end = begin + range.bytes;
+  if (address >= begin && address < end) { bestIndex = index; break; }
+  if ((flags & findNext) != 0 && begin > address && (bestIndex == lease.size() || begin < lease[bestIndex]->address)) bestIndex = index;
  }
- if (best != nullptr) {
-  info->start = best->allocationAddress;
-  info->end = best->allocationAddress + best->allocationBytes;
-  info->protection = (best->readable ? 1 : 0) | (best->writable ? 2 : 0) | (!best->releasable ? 4 : 0);
+ if (bestIndex != lease.size()) {
+  const auto& best = *lease[bestIndex];
+  auto firstIndex = bestIndex;
+  while (firstIndex > 0) {
+   const auto& previous = *lease[firstIndex - 1];
+   const auto& current = *lease[firstIndex];
+   if (previous.allocationAddress != best.allocationAddress || previous.allocationBytes != best.allocationBytes ||
+       previous.address + previous.bytes != current.address) break;
+   --firstIndex;
+  }
+  auto lastIndex = bestIndex;
+  while (lastIndex + 1 < lease.size()) {
+   const auto& current = *lease[lastIndex];
+   const auto& next = *lease[lastIndex + 1];
+   if (next.allocationAddress != best.allocationAddress || next.allocationBytes != best.allocationBytes ||
+       current.address + current.bytes != next.address) break;
+   ++lastIndex;
+  }
+  info->start = lease[firstIndex]->address;
+  const auto& last = *lease[lastIndex];
+  info->end = last.address + last.bytes;
+  info->protection = (best.readable ? 1 : 0) | (best.writable ? 2 : 0) | (!best.releasable ? 4 : 0);
   int recorded = 0;
   if (GuestProtection(std::max<uintptr_t>(address, info->start), &recorded)) info->protection = recorded;
   std::uintptr_t directStart = 0;
@@ -259,7 +275,7 @@ int APS5_VABI sceKernelVirtualQuery(const void* addr, int flags, VirtualQueryInf
   int memoryType = 0;
   const bool direct = QueryDirectMapping(std::max<uintptr_t>(address, info->start), &directStart, &directEnd, &physicalOffset, &memoryType);
   info->is_direct = direct ? 1u : 0u;
-  info->is_flexible = !direct && best->releasable ? 1u : 0u;
+  info->is_flexible = !direct && best.releasable ? 1u : 0u;
   if (direct) {
    info->start = std::max(info->start, directStart);
    info->end = std::min(info->end, directEnd);
