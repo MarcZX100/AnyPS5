@@ -51,10 +51,12 @@ int main() {
     }
     Require(handle > 0);
 
+#ifdef _WIN32
     const char* directInput = SDL_GetHint(SDL_HINT_DIRECTINPUT_ENABLED);
     const char* expectedDirectInput = std::getenv(SDL_HINT_DIRECTINPUT_ENABLED);
     if (expectedDirectInput == nullptr) expectedDirectInput = "0";
     Require(directInput != nullptr && std::strcmp(directInput, expectedDirectInput) == 0);
+#endif
 
     VideoOutOutputStatus before{};
     Require(sceVideoOutGetOutputStatus(handle, &before) == 0);
