@@ -2,12 +2,12 @@
 
 ## Code
 
-- Follow the [coding conventions](docs/dev/CONVENTIONS.md): naming, no comments except [technical debt](docs/dev/TechnicalDebt.md), Conventional Commits.
+- Follow the [coding conventions](docs/dev/CONVENTIONS.md): naming, the code comment policy, and Conventional Commits.
 - Every function either does exactly what it is supposed to or throws. Unimplemented exports call `NotImplemented_nid_no_patch(__func__)` (see [libSceAudioIn](core/libs/prx/libSceAudioIn/Export.cpp)).
 - Pull requests that add or change shader instruction semantics say where they come from: measured on hardware (which GPU and what was checked, e.g. with the [hardware oracle](docs/dev/HW_ORACLE.md)) or the exact source (ISA section, LLVM, ACO or Mesa file). Reviewers check the semantics on hardware. Cases the source doesn't settle throw, and behaviour not verified on hardware is recorded in [technical debt](docs/dev/TechnicalDebt.md).
 - A silent stub is allowed only when it unblocks a title and only affects the UI; add it to [silent stubs](docs/dev/TechnicalDebt.md#silent-stubs).
 - Missing imports fail at startup with a clear error; don't replace them with fallbacks that keep running.
-- Implement the general behaviour of a function, not what one title happens to need.
+- Implement the general behaviour of a function, not what one title happens to need. A title's failure is evidence that an implementation is needed; it is not a reason to special-case that title.
 - Don't add replacements for modules that titles ship themselves in `sce_module/`, `sce_modules/` or `prx/`: engine or middleware modules (Cohtml, FMOD, GOG Galaxy) and SDK libraries that only wrap other system libraries (NpCppWebApi over NpWebApi2). The relinker converts and loads the title's own module, and a host library with the same name is left out of `DT_NEEDED`. Only system libraries, which reach the kernel or the hardware, are reimplemented in [core/libs/prx](core/libs/prx).
 - Avoid non-standard extensions (`__attribute__`, etc.) where standard C++ is enough. Helper symbols that must not become NIDs use the `_nid_no_patch` or `_nid_no_patch_cut` suffix.
 - The relinker uses only the C++20 standard library.
@@ -33,7 +33,7 @@ Every push to `main`, including a merged pull request, automatically runs full L
 
 For pull requests, full Linux and Windows builds and tests run only when a collaborator with write access selects Actions > Build > Run workflow on `main` and enters an open pull request number targeting `main`. This manual run also builds and tests the relinker on Linux, Windows and macOS, regardless of the author's previous contributions or the changed files. The relinker matrix also runs automatically when a pull request targeting `main` is opened, updated or reopened, if its author already has a commit in `main`; full builds never run automatically for pull requests. All build jobs build the selected pull request merged into the current `main` (GitHub's merge commit), so a pull request that no longer merges cleanly must be rebased first. New commits require another manual run for full builds.
 
-The Conventions check runs automatically for every contributor, including first-time contributors. It uses the base branch checker and reads pull request Git objects without executing pull request code. The Conventions check runs on every pull request and fails when a rule on this page is broken. It accepts code comments only when the pull request also changes [TechnicalDebt](docs/dev/TechnicalDebt.md), and only UTF-8 text files. Run it locally before pushing:
+The Conventions check runs automatically for every contributor, including first-time contributors. It uses the base branch checker and reads pull request Git objects without executing pull request code. It automatically checks a subset of these rules and does not replace code review. The comment check allows closing `#endif` and namespace comments; other code comments must document human-written technical debt in [TechnicalDebt](docs/dev/TechnicalDebt.md), and the pull request must update that file. Only UTF-8 text files are allowed. Run the check locally before pushing:
 
 ```
 python3 tools/check_conventions.py --base origin/main
@@ -50,6 +50,12 @@ The [pull request template](.github/pull_request_template.md) is the checklist f
 - Run the tests before opening the pull request and describe what was tested (OS, title or homebrew).
 - Investigation notes, reports, screenshots and logs go in the pull request, not in the repository. Images for documentation go in the [gist](https://gist.github.com/boykopovar/0e53f2e1426f29ecd41e3b51540b8a90) comments.
 - Say whether the change was written with AI assistance. The author of the pull request is responsible for every line of it.
+
+### Evidence for runtime changes
+
+- For a new system-library export or runtime fix proposed to unblock a title, reproduce the issue against current `main`. Include the title name and ID, OS and relevant hardware, the exact error or log line, and the first missing import or failing behaviour.
+- For a bug fix, include a small reproduction against current `main` and its expected and actual results. Add a regression test when practical.
+- The [import audit](docs/user/USAGE.md#import-audit) identifies absent and stubbed exports, but an import list alone does not show that a title reaches a function. If a change is not tied to a reproduced title failure, explain the other concrete project need and any limits in the evidence; reviewers may defer speculative compatibility work until there is a demonstrated use.
 
 ## Documentation
 
