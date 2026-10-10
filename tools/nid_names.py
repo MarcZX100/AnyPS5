@@ -97,7 +97,7 @@ def collect_unknowns():
     for path in source_files(PRX):
         text = path.read_text(encoding="utf-8")
         for nid, name in source_aliases(text):
-            found.setdefault(nid, "%s:%s" % (path.relative_to(ROOT), name))
+            found.setdefault(nid, "%s:%s" % (path.relative_to(ROOT).as_posix(), name))
     return found
 
 
