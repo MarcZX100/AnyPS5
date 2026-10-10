@@ -221,11 +221,11 @@ class OracleConfigurationTests(unittest.TestCase):
                     patch.object(hw_oracle.subprocess, "run", side_effect=compile) as compiler:
                 with patch.object(hw_oracle, "rocm_root", return_value=root / "one"):
                     first = hw_oracle.oracle()
-                    self.assertEqual(first.read_bytes(), ("-L" + str(root / "one/lib")).encode())
+                    self.assertEqual(first.read_bytes(), ("-L" + str((root / "one").resolve() / "lib")).encode())
                 with patch.object(hw_oracle, "rocm_root", return_value=root / "two"):
                     second = hw_oracle.oracle()
                     self.assertNotEqual(second, first)
-                    self.assertEqual(second.read_bytes(), ("-L" + str(root / "two/lib")).encode())
+                    self.assertEqual(second.read_bytes(), ("-L" + str((root / "two").resolve() / "lib")).encode())
                 self.assertEqual(compiler.call_count, 2)
 
     def test_target_override_is_read_for_each_call(self):
