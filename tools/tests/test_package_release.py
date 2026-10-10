@@ -165,9 +165,6 @@ class ReleaseAssetsTests(unittest.TestCase):
             names = ["prx-linux-v1.zip", "prx-linux-v1.tar.gz", "relinker-v1"]
             for name in names:
                 (output / name).write_bytes(b"old " + name.encode())
-            previous = Path.cwd()
-            os.chdir(source)
-            self.addCleanup(os.chdir, previous)
             with patch.object(package_release, "ROOT", source), \
                     patch.object(package_release.tarfile, "open", side_effect=OSError("disk full")), \
                     self.assertRaisesRegex(OSError, "disk full"):
