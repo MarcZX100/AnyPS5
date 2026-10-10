@@ -1316,6 +1316,19 @@ void Structurizer::structurize(ControlFlowGraph& graph, bool privatizeReturns) c
         reserveMergeBlock(header, merge);
         graph.FindBlock(header).terminator.mergeBlock = merge;
     }
+    for (const auto& block : graph.blocks) {
+        const auto& terminator = block.terminator;
+        if (terminator.kind != TerminatorKind::ConditionalBranch || terminator.loopHeader || terminator.mergeBlock != InvalidControlFlowId || terminator.trueBlock == terminator.falseBlock) {
+            continue;
+        }
+        const auto* loop = findInnermostContainingLoop(graph, block.id);
+        const auto exitsLoop = [&](std::uint32_t target) {
+            return loop != nullptr && (target == loop->mergeBlock || target == loop->continueBlock);
+        };
+        if (!exitsLoop(terminator.trueBlock) && !exitsLoop(terminator.falseBlock)) {
+            throw std::runtime_error("conditional block " + std::to_string(block.id) + " branches without a selection merge or loop exit");
+        }
+    }
 }
 
 void Structurizer::computeDominatorTree(ControlFlowGraph& graph) const {

@@ -249,6 +249,16 @@ int main() {
                 return 1;
             }
         }
+        auto sharedTailInLoop = makeGraph({{1}, {2, 3}, {6}, {2, 4}, {5, 6}, {1}, {}});
+        bool rejectedSharedTailInLoop = false;
+        try {
+            Structurizer{}.Structurize(sharedTailInLoop);
+        } catch (const std::runtime_error& error) {
+            rejectedSharedTailInLoop = std::string(error.what()).find("branches without a selection merge or loop exit") != std::string::npos;
+        }
+        if (!rejectedSharedTailInLoop) {
+            throw std::runtime_error("a loop whose selection shares a tail block with a nested selection was not rejected as unsupported");
+        }
         std::vector<std::vector<std::uint32_t>> diamonds;
         for (std::uint32_t diamond = 0; diamond < 50u; ++diamond) {
             const auto head = diamond * 3u;
