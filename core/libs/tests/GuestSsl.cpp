@@ -12,6 +12,7 @@ int APS5_VABI sceSslFreeCaCerts(int, void*);
 int APS5_VABI sceSslGetCaList(int, void*);
 int APS5_VABI sceSslFreeCaList(int, void*);
 int APS5_VABI sceSslUnloadCert(int);
+int APS5_VABI sceSslLoadCert(int, int, void**, void*, void*);
 }
 
 struct SslMemoryPoolStats {
@@ -84,6 +85,11 @@ int main() {
     foreign = {&handle, 0};
     Require(Throws([&] { sceSslFreeCaList(context, &foreign); }));
 
+    Require(sceSslLoadCert(context, 0, nullptr, nullptr, nullptr) == 0);
+    void* caCert = &marker;
+    Require(sceSslLoadCert(context, 1, &caCert, &marker, &marker) == 0);
+    Require(sceSslLoadCert(context, 1, nullptr, nullptr, nullptr) == invalidArg);
+    Require(sceSslLoadCert(context, -1, &caCert, nullptr, nullptr) == invalidArg);
     Require(sceSslUnloadCert(context) == 0);
     Require(sceSslGetCaList(context, &list) == notFound);
     Require(list.certs == nullptr && list.num == 0);
@@ -95,4 +101,5 @@ int main() {
     Require(Throws([&] { sceSslGetCaList(context, &list); }));
     Require(Throws([&] { sceSslFreeCaList(context, &list); }));
     Require(Throws([&] { sceSslUnloadCert(context); }));
+    Require(Throws([&] { sceSslLoadCert(context, 0, nullptr, nullptr, nullptr); }));
 }
