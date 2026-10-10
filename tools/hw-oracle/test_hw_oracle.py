@@ -175,6 +175,13 @@ class OracleConfigurationTests(unittest.TestCase):
                     patch.object(hw_oracle.subprocess, "run", side_effect=compile):
                 self.assertEqual(hw_oracle.oracle().read_bytes(), b"executable")
 
+    def test_empty_compiler_command_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(hw_oracle, "CACHE", Path(tmp)), \
+                patch.dict(os.environ, {"CC": ""}), patch.object(hw_oracle.subprocess, "run") as compiler:
+            with self.assertRaisesRegex(ValueError, "CC must name a compiler command"):
+                hw_oracle.oracle()
+            compiler.assert_not_called()
+
     def test_source_change_with_preserved_timestamp_invalidates_cache(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -226,6 +233,27 @@ class OracleConfigurationTests(unittest.TestCase):
                     second = hw_oracle.oracle()
                     self.assertNotEqual(second, first)
                     self.assertEqual(second.read_bytes(), ("-L" + str((root / "two").resolve() / "lib")).encode())
+                self.assertEqual(compiler.call_count, 2)
+
+    def test_runtime_version_change_at_same_path_invalidates_cache(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            version_file = root / ".info" / "version"
+            version_file.parent.mkdir()
+            version_file.write_text("6.3.0\n", encoding="utf-8")
+
+            def compile(command, *, check):
+                Path(command[command.index("-o") + 1]).write_bytes(version_file.read_bytes())
+
+            with patch.object(hw_oracle, "CACHE", root / "cache"), \
+                    patch.object(hw_oracle, "rocm_root", return_value=root), \
+                    patch.object(hw_oracle.subprocess, "run", side_effect=compile) as compiler:
+                first = hw_oracle.oracle()
+                self.assertEqual(first.read_bytes(), b"6.3.0\n")
+                version_file.write_text("6.3.1\n", encoding="utf-8")
+                second = hw_oracle.oracle()
+                self.assertNotEqual(second, first)
+                self.assertEqual(second.read_bytes(), b"6.3.1\n")
                 self.assertEqual(compiler.call_count, 2)
 
     def test_target_override_is_read_for_each_call(self):

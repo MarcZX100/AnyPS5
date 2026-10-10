@@ -24,6 +24,15 @@ def rocm_root():
     return None
 
 
+def rocm_version(root):
+    if root is None:
+        return None
+    try:
+        return (root / ".info" / "version").read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return None
+
+
 def tool(name):
     found = shutil.which(name)
     if found:
@@ -42,7 +51,7 @@ def oracle():
     root = rocm_root()
     if root is not None:
         root = root.resolve()
-    configuration = repr((compiler, str(root))).encode("utf-8")
+    configuration = repr((compiler, str(root), rocm_version(root))).encode("utf-8")
     key = hashlib.sha256(source.read_bytes() + configuration).hexdigest()
     directory = CACHE / key
     binary = directory / "oracle"
