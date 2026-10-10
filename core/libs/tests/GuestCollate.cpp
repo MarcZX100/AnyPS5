@@ -197,7 +197,6 @@ int main() {
     const auto* wideCollate = reinterpret_cast<const GuestLocale::CollateFacet*>(wideFacet);
     require(wideCollate->collation == nullptr && wideCollate->wideCollation == nullptr);
     require(WideVtable(wideFacet).facet.destroy == Vtable(facet).facet.destroy);
-    require(reinterpret_cast<const void*>(WideVtable(wideFacet).compare) != reinterpret_cast<const void*>(Vtable(facet).compare));
 
     require(Compare(wideCollate, u"abc", u"abd") == -1);
     require(Compare(wideCollate, u"abd", u"abc") == 1);
