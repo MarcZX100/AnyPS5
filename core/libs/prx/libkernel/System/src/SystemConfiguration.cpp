@@ -1,5 +1,6 @@
 #include "prx/libc/include/general/VabiMacros.hpp"
 #include "prx/libkernel/DirectMemory/DirectMemory.hpp"
+#include "prx/libkernel/KernelErrors.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -116,12 +117,10 @@ int APS5_VABI sysctlbyname_nid_postfix(const char* name, void* oldValue, std::si
 
 int APS5_VABI sceKernelGetSystemSwVersion_nid_postfix(SceKernelSystemSwVersion* version) {
     if (version == nullptr) {
-        *__error_nid_postfix() = 14;
-        return -1;
+        return SCE_KERNEL_ERROR_EFAULT;
     }
     if (version->size != sizeof(SceKernelSystemSwVersion)) {
-        *__error_nid_postfix() = 22;
-        return -1;
+        return SCE_KERNEL_ERROR_EINVAL;
     }
     std::memset(version->versionString, 0, sizeof(version->versionString));
     std::memcpy(version->versionString, "01.000.000", sizeof("01.000.000"));
