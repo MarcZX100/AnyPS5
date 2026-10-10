@@ -1,4 +1,5 @@
 #include "prx/libc/include/general/VabiMacros.hpp"
+#include "prx/libkernel/KernelErrors.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -62,17 +63,17 @@ static void CheckProcessorCountSysctl() {
 }
 static void CheckSystemSwVersion() {
     *__error_nid_postfix() = 13;
-    Require(sceKernelGetSystemSwVersion_nid_postfix(nullptr) == -1 && *__error_nid_postfix() == 14);
+    Require(sceKernelGetSystemSwVersion_nid_postfix(nullptr) == SCE_KERNEL_ERROR_EFAULT && *__error_nid_postfix() == 13);
     SceKernelSystemSwVersion version{};
     version.size = 0;
     *__error_nid_postfix() = 13;
-    Require(sceKernelGetSystemSwVersion_nid_postfix(&version) == -1 && *__error_nid_postfix() == 22);
+    Require(sceKernelGetSystemSwVersion_nid_postfix(&version) == SCE_KERNEL_ERROR_EINVAL && *__error_nid_postfix() == 13);
     version.size = sizeof(SceKernelSystemSwVersion) - 1;
     *__error_nid_postfix() = 13;
-    Require(sceKernelGetSystemSwVersion_nid_postfix(&version) == -1 && *__error_nid_postfix() == 22);
+    Require(sceKernelGetSystemSwVersion_nid_postfix(&version) == SCE_KERNEL_ERROR_EINVAL && *__error_nid_postfix() == 13);
     version.size = sizeof(SceKernelSystemSwVersion) + 1;
     *__error_nid_postfix() = 13;
-    Require(sceKernelGetSystemSwVersion_nid_postfix(&version) == -1 && *__error_nid_postfix() == 22);
+    Require(sceKernelGetSystemSwVersion_nid_postfix(&version) == SCE_KERNEL_ERROR_EINVAL && *__error_nid_postfix() == 13);
     std::memset(&version, 0xaa, sizeof(version));
     version.size = sizeof(SceKernelSystemSwVersion);
     *__error_nid_postfix() = 13;
