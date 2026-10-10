@@ -122,6 +122,23 @@ def main():
                 needed = needed_libraries(output.read_bytes())
                 assert needed == ["$ORIGIN/app0/sce_module/needed.prx.guest.prx"], needed
 
+            case = work / f"{windows}-metadata-unreadable"
+            malformed = module_with_symbol(True)
+            phoff, = struct.unpack_from("<Q", malformed, 32)
+            phentsize, phnum = struct.unpack_from("<HH", malformed, 54)
+            for index in range(phnum):
+                header = phoff + index * phentsize
+                if struct.unpack_from("<I", malformed, header)[0] == 2:
+                    struct.pack_into("<Q", malformed, header + 8, len(malformed) + 4)
+                    break
+            else:
+                raise AssertionError("The malformed fixture has no dynamic segment")
+            (case / "sce_sys" / "about").mkdir(parents=True)
+            (case / "sce_sys" / "about" / "right.sprx").write_bytes(malformed)
+            result, output = convert(case, windows, b"right.sprx")
+            assert result.returncode == 0, (result.stdout, result.stderr)
+            assert output.exists(), output
+
             case = work / f"{windows}-repeated-system"
             result, output = convert(case, windows, b"libSceVideoOut.prx", repeats=2)
             assert result.returncode == 0, (result.stdout, result.stderr)
