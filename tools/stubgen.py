@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import argparse
+import os
 import re
+import stat
 import sys
 import tempfile
 from pathlib import Path
@@ -177,17 +179,34 @@ def same_file(left, right):
 
 def write_outputs(outputs):
     staged = []
+    direct = []
     try:
         for filename, content in outputs:
-            path = Path(filename).resolve()
+            destination = Path(filename)
+            try:
+                destination_info = destination.stat()
+            except FileNotFoundError:
+                destination_info = None
+            if destination_info is not None and not stat.S_ISREG(destination_info.st_mode):
+                direct.append((destination, content))
+                continue
+
+            path = destination.resolve()
             if path.is_dir():
                 raise IsADirectoryError(str(path))
             with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="\n", dir=path.parent, prefix=path.name + ".", suffix=".tmp", delete=False) as handle:
                 temporary = Path(handle.name)
                 staged.append((temporary, path))
                 handle.write(content)
-            if path.exists():
-                temporary.chmod(path.stat().st_mode & 0o7777)
+            if destination_info is not None:
+                temporary.chmod(destination_info.st_mode & 0o7777)
+            else:
+                current_umask = os.umask(0)
+                os.umask(current_umask)
+                temporary.chmod(0o666 & ~current_umask)
+        for path, content in direct:
+            with path.open("w", encoding="utf-8", newline="\n") as handle:
+                handle.write(content)
         for temporary, path in staged:
             temporary.replace(path)
     finally:

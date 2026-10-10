@@ -1,5 +1,8 @@
 import contextlib
 import io
+import os
+import stat
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -79,6 +82,42 @@ class StubGeneratorTests(unittest.TestCase):
             self.assertEqual(stubgen.main(arguments), 0)
             self.assertIn('APS5_EXPORT("AAAAAAAAAAA",', code.read_text(encoding="utf-8"))
             self.assertIn("unknown name, signature", debt.read_text(encoding="utf-8"))
+
+    @unittest.skipIf(os.name == "nt", "POSIX special output devices")
+    def test_special_output_destinations_keep_their_stream_behavior(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            nids = root / "nids.txt"
+            nids.write_text("AAAAAAAAAAA\n", encoding="utf-8")
+            code, debt = stubgen.generate("libSceExample", ["AAAAAAAAAAA"], {})
+            null_result = subprocess.run(
+                [sys.executable, stubgen.__file__, "--module", "libSceExample", "--nids", str(nids), "--out", os.devnull],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(null_result.returncode, 0, null_result.stderr)
+            self.assertEqual(null_result.stdout, debt)
+            stdout_result = subprocess.run(
+                [sys.executable, stubgen.__file__, "--module", "libSceExample", "--nids", str(nids), "--out", "/dev/stdout"],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(stdout_result.returncode, 0, stdout_result.stderr)
+            self.assertEqual(stdout_result.stdout, code + debt)
+
+    @unittest.skipIf(os.name == "nt", "POSIX permission bits")
+    def test_output_modes_match_open_creation_and_existing_file_modes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            created = root / "created.cpp"
+            existing = root / "existing.cpp"
+            existing.write_text("old\n", encoding="utf-8")
+            existing.chmod(0o640)
+            old_umask = os.umask(0o022)
+            try:
+                stubgen.write_outputs([(created, "new\n"), (existing, "updated\n")])
+            finally:
+                os.umask(old_umask)
+            self.assertEqual(stat.S_IMODE(created.stat().st_mode), 0o644)
+            self.assertEqual(stat.S_IMODE(existing.stat().st_mode), 0o640)
 
 
 if __name__ == "__main__":
