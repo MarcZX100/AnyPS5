@@ -263,6 +263,22 @@ int main() {
     Require(llroundf_nid_postfix(2.5f) == 3 && llroundf_nid_postfix(-2.5f) == -3 && llroundf_nid_postfix(-0.4f) == 0);
     Require(llroundf_nid_postfix(8589934592.f) == INT64_C(8589934592) && llroundf_nid_postfix(-0x1p62f) == -(INT64_C(1) << 62));
     Require(llroundf_nid_postfix(0.49999997f) == 0 && llroundf_nid_postfix(16777215.f) == 16777215);
+    Require(lround_nid_postfix(0.49999999999999994) == 0 && lround_nid_postfix(-0.49999999999999994) == 0);
+    Require(lround_nid_postfix(-9223372036854775808.0) == INT64_MIN);
+    Require(lround_nid_postfix(9223372036854774784.0) == INT64_C(9223372036854774784));
+    Require(lroundf_nid_postfix(9223371487098961920.f) == INT64_C(9223371487098961920));
+    std::feclearexcept(FE_ALL_EXCEPT);
+    Require(lround_nid_postfix(4503599627370497.0) == INT64_C(4503599627370497) && std::fetestexcept(FE_INVALID) == 0);
+    const double outOfRange[] = {9223372036854775808.0, -9223374235878031360.0, 1e30, -1e30, std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN()};
+    for (const double value : outOfRange) {
+        std::feclearexcept(FE_ALL_EXCEPT);
+        Require(lround_nid_postfix(value) == INT64_MIN && std::fetestexcept(FE_INVALID) != 0);
+        std::feclearexcept(FE_ALL_EXCEPT);
+        Require(llround_nid_postfix(value) == INT64_MIN && std::fetestexcept(FE_INVALID) != 0);
+        std::feclearexcept(FE_ALL_EXCEPT);
+        Require(lroundf_nid_postfix(static_cast<float>(value)) == INT64_MIN && std::fetestexcept(FE_INVALID) != 0);
+    }
+    std::feclearexcept(FE_ALL_EXCEPT);
     const auto infinity = std::numeric_limits<float>::infinity();
     const auto nan = std::numeric_limits<float>::quiet_NaN();
     Require(__isinff_nid_postfix(infinity) == 1 && __isinff_nid_postfix(-infinity) == 1);
