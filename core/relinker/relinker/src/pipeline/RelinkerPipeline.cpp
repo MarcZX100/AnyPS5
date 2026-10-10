@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iostream>
 #include <cstring>
+#include <limits>
 #include <domain/ImportModule.hpp>
 
 namespace Relinker {
@@ -59,6 +60,11 @@ RelinkResult RelinkerPipeline::Relink(const std::vector<std::uint8_t>& sourceElf
         }
     }
 
+    FileByteOffset sceTableBase = 0;
+    for (const auto& ph : programHeaders)
+        if (ph.Type == PT_SCE_DYNLIBDATA)
+            sceTableBase = ph.Offset;
+
     std::vector<DynamicTag> dynTags;
     bool hasDynamicSegment = false;
 
@@ -99,8 +105,12 @@ RelinkResult RelinkerPipeline::Relink(const std::vector<std::uint8_t>& sourceElf
     };
 
     auto readAsOffset = [&](const std::int64_t osTag, const std::int64_t sysvTag, const char* name) -> FileByteOffset {
-        if (requireExactlyOneOf(osTag, sysvTag, name))
-            return getTagValue(osTag);
+        if (requireExactlyOneOf(osTag, sysvTag, name)) {
+            const std::uint64_t value = getTagValue(osTag);
+            if (value > std::numeric_limits<FileByteOffset>::max() - sceTableBase)
+                throw RelinkerException(std::string(name) + " is outside the file", value);
+            return sceTableBase + value;
+        }
         return _elfReader->TranslateVirtualAddress(getTagValue(sysvTag));
     };
 
