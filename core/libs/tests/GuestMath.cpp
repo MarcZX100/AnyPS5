@@ -214,12 +214,14 @@ static void CheckDoubleRounding(double value, std::int64_t expected, bool invali
 }
 
 static void CheckFloatRounding(float value, std::int64_t expected, bool invalid) {
-    std::feclearexcept(FE_ALL_EXCEPT);
-    errno = 12345;
-    const std::int64_t result = lroundf_nid_postfix(value);
-    Require(result == expected);
-    Require((std::fetestexcept(FE_INVALID) != 0) == invalid);
-    Require(errno == 12345);
+    for (const bool useLlround : {false, true}) {
+        std::feclearexcept(FE_ALL_EXCEPT);
+        errno = 12345;
+        const std::int64_t result = useLlround ? llroundf_nid_postfix(value) : lroundf_nid_postfix(value);
+        Require(result == expected);
+        Require((std::fetestexcept(FE_INVALID) != 0) == invalid);
+        Require(errno == 12345);
+    }
 }
 
 int main() {
