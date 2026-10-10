@@ -16,6 +16,7 @@ inline constexpr std::size_t kEhdrPhNumOffset = 56;
 inline constexpr std::size_t kEhdrShEntSizeOffset = 58;
 inline constexpr std::size_t kEhdrShNumOffset = 60;
 inline constexpr std::size_t kEhdrShStrNdxOffset = 62;
+inline constexpr std::uint16_t SHN_XINDEX = 0xffff;
 
 inline constexpr std::size_t kShdrNameOffset = 0;
 inline constexpr std::size_t kShdrTypeOffset = 4;

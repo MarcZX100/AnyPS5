@@ -133,14 +133,20 @@ std::vector<ProgramHeader> ElfReader::ReadProgramHeaders() const {
 
 std::vector<SectionHeader> ElfReader::ReadSectionHeaders() const {
     const ElfHeader header = ReadHeader();
+    if (header.SectionHeaderCount == 0 && header.SectionHeaderOffset != 0) {
+        throw RelinkerException("Extended section header counts are unsupported", kEhdrShNumOffset);
+    }
     if (header.SectionHeaderCount != 0 && header.SectionHeaderEntrySize != 64) {
-        throw RelinkerException("Invalid ELF section header entry size: expected 64 bytes", 0x3a);
+        throw RelinkerException("Invalid ELF section header entry size: expected 64 bytes", kEhdrShEntSizeOffset);
     }
     if (!_rangeFits(header.SectionHeaderOffset, static_cast<std::uint64_t>(header.SectionHeaderCount) * header.SectionHeaderEntrySize, _fileBuffer.size())) {
         throw RelinkerException("Section header table out of bounds", header.SectionHeaderOffset);
     }
+    if (header.SectionHeaderStringIndex == SHN_XINDEX) {
+        throw RelinkerException("Extended section name table indices are unsupported", kEhdrShStrNdxOffset);
+    }
     if (header.SectionHeaderStringIndex != 0 && header.SectionHeaderStringIndex >= header.SectionHeaderCount) {
-        throw RelinkerException("Invalid section name table index", 0x3e);
+        throw RelinkerException("Invalid section name table index", kEhdrShStrNdxOffset);
     }
 
     std::vector<SectionHeader> headers;

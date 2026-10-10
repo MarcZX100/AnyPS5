@@ -1,4 +1,5 @@
 #include <relinker/parsing/ElfReader.hpp>
+#include <elfpatcher/general/ElfConstants.hpp>
 #include <cstdint>
 #include <cstring>
 #include <functional>
@@ -67,6 +68,16 @@ void RejectSections(Bytes bytes) {
     throw std::runtime_error("Invalid section metadata was accepted");
 }
 
+void RejectSectionsAt(Bytes bytes, const std::string& message, const std::uint64_t offset) {
+    try {
+        Relinker::ElfReader(std::move(bytes)).ReadSectionHeaders();
+    } catch (const Relinker::RelinkerException& error) {
+        Require(error.what() == message && error.FailureOffset == offset);
+        return;
+    }
+    throw std::runtime_error("Invalid section metadata was accepted");
+}
+
 void RejectAddress(Bytes bytes, const std::uint64_t address) {
     try {
         Relinker::ElfReader(std::move(bytes)).TranslateVirtualAddress(address);
@@ -88,13 +99,28 @@ int main() {
             for (const std::uint16_t stride : {0, 56, 65}) {
                 auto bytes = Fixture();
                 Write(bytes, 58, stride);
-                RejectSections(std::move(bytes));
+                RejectSectionsAt(std::move(bytes), "Invalid ELF section header entry size: expected 64 bytes", Elfpatcher::kEhdrShEntSizeOffset);
             }
+        }},
+        {"extended section header count", [] {
+            auto bytes = Fixture();
+            Write<std::uint16_t>(bytes, 60, 0);
+            RejectSectionsAt(std::move(bytes), "Extended section header counts are unsupported", Elfpatcher::kEhdrShNumOffset);
+        }},
+        {"section header table range", [] {
+            auto bytes = Fixture();
+            Write<std::uint64_t>(bytes, 40, 0x2d0);
+            RejectSectionsAt(std::move(bytes), "Section header table out of bounds", 0x2d0);
         }},
         {"section name table index", [] {
             auto bytes = Fixture();
             Write<std::uint16_t>(bytes, 62, 3);
-            RejectSections(std::move(bytes));
+            RejectSectionsAt(std::move(bytes), "Invalid section name table index", Elfpatcher::kEhdrShStrNdxOffset);
+        }},
+        {"extended section name table index", [] {
+            auto bytes = Fixture();
+            Write<std::uint16_t>(bytes, 62, Elfpatcher::SHN_XINDEX);
+            RejectSectionsAt(std::move(bytes), "Extended section name table indices are unsupported", Elfpatcher::kEhdrShStrNdxOffset);
         }},
         {"section name table type", [] {
             auto bytes = Fixture();
