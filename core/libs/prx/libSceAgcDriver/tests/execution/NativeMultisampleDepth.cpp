@@ -724,8 +724,14 @@ void CheckDepthTarget(Context context, VkFormat format, std::uint32_t fragments,
         for (const auto offset : {0.0f, 0.25f}) {
             Require(CachedSampledTexture(context, words) == texture, "native sampled view changed between raster writes");
             std::memset(output.Bytes().data(), 0xa5, output.Bytes().size());
+            {
+                CommandBatch batch(context);
+                raster.Run(batch.Handle(), offset);
+                batch.SubmitAndWait();
+            }
+            Require(CachedSampledTexture(context, words) == texture, "native depth shadow view changed after a raster write");
+            recorder.Sync();
             CommandBatch batch(context);
-            raster.Run(batch.Handle(), offset);
             fetch.Run(batch.Handle(), count);
             RecordMemoryBarrier(context, batch.Handle(), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_HOST_READ_BIT);
             batch.SubmitAndWait();
