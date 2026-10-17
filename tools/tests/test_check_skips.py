@@ -117,6 +117,25 @@ class CheckSkipsTests(unittest.TestCase):
                     self.assertIn("agc_disabled", result.stderr)
                     self.assertIn("disabled", result.stderr)
 
+    def test_ctest_skip_return_code_metadata_does_not_hide_high_refresh_reason(self):
+        reason = "current display does not provide 120 Hz"
+        report = (
+            '<skipped message="SKIP_RETURN_CODE=77"/>'
+            f'<system-out>skipped, {reason}</system-out>'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            junit = Path(directory) / "junit.xml"
+            junit.write_text(
+                f'<testsuite><testcase name="guest_video_out_high_frame_rate">{report}</testcase></testsuite>',
+                encoding="utf-8")
+            for job in ("linux", "windows"):
+                with self.subTest(job=job):
+                    result = subprocess.run(
+                        [sys.executable, "-I", str(TOOL), str(junit), "--job", job],
+                        capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn("1 test(s) skipped, all expected", result.stdout)
+
     def test_device_limitations_match(self):
         for message in LIMITATIONS:
             with self.subTest(message=message):
