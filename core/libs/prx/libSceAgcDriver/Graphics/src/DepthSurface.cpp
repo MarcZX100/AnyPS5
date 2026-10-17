@@ -143,11 +143,20 @@ public:
             sampleable = target.samples == 1;
             if (target.samples != 1) {
                 Require(context.imageFormatProperties != nullptr, "native multisample depth requires image format queries");
-                VkImageFormatProperties supported{};
+                VkImageFormatProperties shadowProperties{};
+                VkImageFormatProperties directProperties{};
                 const auto sampledUsage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-                const auto result = context.imageFormatProperties(context.physical, hostFormat, info.imageType, info.tiling, sampledUsage, info.flags, &supported);
-                if (result != VK_ERROR_FORMAT_NOT_SUPPORTED) Check(result, "vkGetPhysicalDeviceImageFormatProperties sampled depth");
-                sampleable = (properties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) != 0 && result == VK_SUCCESS && (supported.sampleCounts & info.samples) != 0 && supported.maxMipLevels >= 1u && supported.maxArrayLayers >= 1u && supported.maxExtent.depth >= 1u && info.extent.width <= supported.maxExtent.width && info.extent.height <= supported.maxExtent.height;
+                const auto shadowResult = context.imageFormatProperties(context.physical, hostFormat, info.imageType, info.tiling, sampledUsage, 0, &shadowProperties);
+                if (shadowResult != VK_ERROR_FORMAT_NOT_SUPPORTED) Check(shadowResult, "vkGetPhysicalDeviceImageFormatProperties sampled depth shadow");
+                const auto directResult = context.imageFormatProperties(context.physical, hostFormat, info.imageType, info.tiling, info.usage | VK_IMAGE_USAGE_SAMPLED_BIT, info.flags, &directProperties);
+                if (directResult != VK_ERROR_FORMAT_NOT_SUPPORTED) Check(directResult, "vkGetPhysicalDeviceImageFormatProperties sampled depth attachment");
+                const auto supports = [&](VkResult result, const VkImageFormatProperties& supported) {
+                    return (properties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) != 0 && result == VK_SUCCESS && (supported.sampleCounts & info.samples) != 0 && supported.maxMipLevels >= 1u && supported.maxArrayLayers >= 1u && supported.maxExtent.depth >= 1u && info.extent.width <= supported.maxExtent.width && info.extent.height <= supported.maxExtent.height;
+                };
+                useSampleShadow = supports(shadowResult, shadowProperties);
+                const bool directSampleable = supports(directResult, directProperties);
+                sampleable = useSampleShadow || directSampleable;
+                if (!useSampleShadow && directSampleable) info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
             }
             if (target.samples == 1 && sampleable) info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
             info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -188,7 +197,7 @@ public:
             RecordMemoryBarrier(context, commands, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
             if (batch) batch->SubmitAndWait();
             else Recorder::CountBarriers(Recorder::CommandClass::Draw, 2);
-            if (target.samples != 1u && sampleable && this->sampling.refusal.empty()) createSampleShadow();
+            if (useSampleShadow && sampleable && this->sampling.refusal.empty()) createSampleShadow();
         } catch (...) {
             release();
             throw;
@@ -315,11 +324,11 @@ public:
                           static_cast<unsigned>(resource.tileMode), static_cast<int>(resource.dimension), resource.baseLevel, resource.lastLevel, resource.baseArray, key[0], key[1], key[2], key[3], key[4], key[5], key[6], key[7]);
             throw std::runtime_error(text);
         }
-        if (multisampled) refreshSampleShadow(drawn);
+        if (multisampled && useSampleShadow) refreshSampleShadow(drawn);
         if (const auto found = textures.find(key); found != textures.end()) return found->second;
         const auto viewType = resource.dimension == TextureDimension::k2DArray ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
-        const auto sampledImage = multisampled ? sampleShadow : owned;
-        auto texture = std::make_shared<Texture>(context, multisampled ? sampleShadow->image : image, hostFormat, stencil ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT, components, viewType, 0, sampledImage);
+        const auto sampledImage = useSampleShadow ? sampleShadow : owned;
+        auto texture = std::make_shared<Texture>(context, useSampleShadow ? sampleShadow->image : image, hostFormat, stencil ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT, components, viewType, 0, sampledImage);
         if (multisampled) {
             Require(samplingActive, "native multisample depth sampling requires its creation-time owner");
             texture->MarkRefreshedPerUse();
@@ -503,6 +512,7 @@ public:
     std::uint64_t clearGeneration = 0u;
     std::shared_ptr<OwnedImage> owned;
     std::shared_ptr<OwnedImage> sampleShadow;
+    bool useSampleShadow = false;
     std::uint64_t sampleShadowWritten = 0u;
 
 private:
