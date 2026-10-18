@@ -57,6 +57,23 @@ class CheckSkipsTests(unittest.TestCase):
                         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                         self.assertIn("1 test(s) skipped, all expected", result.stdout)
 
+    def test_high_refresh_skip_allows_known_vulkan_startup_logs(self):
+        report = '''<skipped message="current display does not provide 120 Hz"/><system-out>Surface capabilities drawable=1152x648 min=1152x648 max=1152x648 minImages=3 maxImages=0 usage=0x8009f
+[src/VulkanDevice.cpp:1972 VulkanDevice] Swapchain created swapchain=0x12345678 extent=1152x648 images=3
+[shader-disk-cache] /tmp/build/tests/shader_cache/4bc6b6d4632b7637 (source version 4bc6b6d4632b7637, format 36)
+skipped, current display does not provide 120 Hz
+</system-out>'''
+        with tempfile.TemporaryDirectory() as directory:
+            junit = Path(directory) / "junit.xml"
+            junit.write_text(f'<testsuite><testcase name="guest_video_out_high_frame_rate">{report}</testcase></testsuite>', encoding="utf-8")
+            for job in ("linux", "windows"):
+                with self.subTest(job=job):
+                    result = subprocess.run(
+                        [sys.executable, "-I", str(TOOL), str(junit), "--job", job],
+                        capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn("1 test(s) skipped, all expected", result.stdout)
+
     def test_high_refresh_reason_cannot_hide_additional_diagnostics(self):
         reason = "current display does not provide 120 Hz"
         known = f"skipped, {reason}"

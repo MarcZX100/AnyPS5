@@ -8,20 +8,29 @@ DEVICE_LIMITATION = re.compile(r"skipped,.*(subgroup|the device (has no|reports|
 NO_DISPLAY = re.compile(r"skipped,.*no display", re.IGNORECASE)
 
 HIGH_REFRESH_LIMITATION = re.compile(r"current display does not provide 120 Hz", re.IGNORECASE)
+HIGH_REFRESH_STARTUP_LOGS = (
+    re.compile(r"Surface capabilities drawable=\d+x\d+ min=\d+x\d+ max=\d+x\d+ minImages=\d+ maxImages=\d+ usage=0x[0-9a-f]+", re.IGNORECASE),
+    re.compile(r"\[src/VulkanDevice\.cpp:\d+ VulkanDevice\] Swapchain created swapchain=0x[0-9a-f]+ extent=\d+x\d+ images=\d+", re.IGNORECASE),
+    re.compile(r"\[shader-disk-cache\] .+ \(source version [0-9a-f]+, format \d+\)", re.IGNORECASE),
+)
 SKIP_RETURN_CODE = re.compile(r"SKIP_RETURN_CODE=\d+")
 
 WINDOWS_PREFIX = "agc"
 
 
 def high_refresh_limitation(output):
-    reasons = []
+    found_limitation = False
     for line in output.splitlines():
-        reason = line.strip()
-        if reason.lower().startswith("skipped,"):
-            reason = reason[len("skipped,"):].strip()
-        if reason:
-            reasons.append(reason)
-    return bool(reasons) and all(HIGH_REFRESH_LIMITATION.fullmatch(reason) for reason in reasons)
+        message = line.strip()
+        if not message:
+            continue
+        if message.lower().startswith("skipped,"):
+            message = message[len("skipped,"):].strip()
+        if HIGH_REFRESH_LIMITATION.fullmatch(message):
+            found_limitation = True
+        elif not any(pattern.fullmatch(message) for pattern in HIGH_REFRESH_STARTUP_LOGS):
+            return False
+    return found_limitation
 
 
 def skips(path):
