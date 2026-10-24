@@ -76,8 +76,11 @@ class TraceDigestTests(unittest.TestCase):
             ({key: value for key, value in slice_event.items() if key != "dur"}, "trace event 0: dur must be a finite number"),
             (dict(slice_event, dur=None), "trace event 0: dur must be a finite number"),
             (dict(slice_event, dur="slow"), "trace event 0: dur must be a finite number"),
+            (dict(slice_event, dur="10"), "trace event 0: dur must be a finite number"),
+            (dict(slice_event, dur=True), "trace event 0: dur must be a finite number"),
             (dict(slice_event, dur=[1]), "trace event 0: dur must be a finite number"),
             (dict(slice_event, ts={}), "trace event 0: ts must be a finite number"),
+            (dict(slice_event, ts="0"), "trace event 0: ts must be a finite number"),
             (dict(slice_event, ts=float("nan")), "trace event 0: ts must be a finite number"),
             (dict(slice_event, ts=float("inf")), "trace event 0: ts must be a finite number"),
             (dict(slice_event, ts=1e308), "trace event 0: ts must be a finite number"),
@@ -85,6 +88,8 @@ class TraceDigestTests(unittest.TestCase):
             ({key: value for key, value in slice_event.items() if key != "name"}, "trace event 0: name must be a string"),
             (dict(slice_event, args=[]), "trace event 0: args must be an object"),
             (dict(slice_event, args={"batch": [1]}), "trace event 0: args.batch must be an integer or a string"),
+            (dict(slice_event, args={"batch": []}), "trace event 0: args.batch must be an integer or a string"),
+            (dict(slice_event, args={"batch": None}), "trace event 0: args.batch must be an integer or a string"),
             ({"name": "thread_name", "ph": "M", "ts": 0, "pid": 7, "tid": 1}, "trace event 0: args.name must be a string"),
             ({"name": "thread_name", "ph": "M", "ts": 0, "pid": 7, "tid": 1, "args": {}}, "trace event 0: args.name must be a string"),
             ({"name": "thread_name", "ph": "M", "ts": 0, "pid": 7, "tid": [1], "args": {"name": "a"}}, "trace event 0: tid must be an integer"),
@@ -94,6 +99,7 @@ class TraceDigestTests(unittest.TestCase):
             ({"name": "folded", "ph": "C", "ts": 0, "pid": 7, "args": {"ms": 1.5}}, "trace event 0: tid must be an integer"),
             ({"name": "folded", "ph": "C", "ts": 0, "pid": 7, "tid": 1, "args": []}, "trace event 0: args must be an object"),
             ({"name": "folded", "ph": "C", "ts": 0, "pid": 7, "tid": 1, "args": {"ms": "x"}}, "trace event 0: args value must be a finite number"),
+            ({"name": "folded", "ph": "C", "ts": 0, "pid": 7, "tid": 1, "args": {"ms": True}}, "trace event 0: args value must be a finite number"),
         ]
         for event, message in cases:
             for compressed in (False, True):

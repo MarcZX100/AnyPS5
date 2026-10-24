@@ -28,6 +28,8 @@ def is_wait(name):
 
 
 def _event_value(value, label, index):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"trace event {index}: {label} must be a finite number")
     try:
         number = float(value)
     except (TypeError, ValueError, OverflowError):
@@ -85,8 +87,9 @@ class Trace:
                 ts = _event_number(event, "ts", index)
                 dur = _event_number(event, "dur", index)
                 self.slices[tid].append([ts, dur, name, 0, False])
-                batch = _event_args(event, index).get("batch")
-                if batch:
+                args = _event_args(event, index)
+                if "batch" in args:
+                    batch = args["batch"]
                     if isinstance(batch, bool) or not isinstance(batch, (int, str)):
                         raise ValueError(f"trace event {index}: args.batch must be an integer or a string")
                     self.batched.append((tid, ts, dur, name, batch))
