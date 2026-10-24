@@ -100,6 +100,31 @@ void CheckFriends(const char* name, int accepted, int maxSortType, bool waits, c
     sceNpTusDeleteRequest(req);
 }
 
+struct TssOption {
+    std::uint64_t size;
+    std::uint64_t* offset;
+    std::uint64_t* lastByte;
+    void* ifParam;
+};
+
+void CheckTss(const char* name, int accepted, const std::function<int(int, int, void*, const TssOption*)>& call) {
+    const int req = NewRequest();
+    Require(call(req, 0, nullptr, nullptr) == InsufficientArgument, name, "a null data status was taken");
+    Require(call(req, -1, buffer, nullptr) == InvalidArgument, name, "a negative slot id was taken");
+    Require(call(req, 16, buffer, nullptr) == InvalidArgument, name, "slot id 16 was taken");
+    Require(call(req, 0, nullptr, nullptr) == InsufficientArgument, name, "the data status was not checked before the slot");
+    TssOption option{sizeof(TssOption) - 8, nullptr, nullptr, nullptr};
+    Require(call(req, 15, buffer, &option) == InvalidAlignment, name, "an option of the wrong size was taken");
+    std::uint64_t offset = 4;
+    option = TssOption{sizeof(TssOption), &offset, &offset, nullptr};
+    Require(call(req, 15, buffer, &option) == accepted, name, "a valid option was refused");
+    Require(call(req, 0, buffer, nullptr) == accepted, name, "slot id 0 without an option was refused");
+    Require(call(9999, 0, buffer, nullptr) == InvalidId, name, "an unknown request was not refused with INVALID_ID");
+    int result = 0;
+    if (accepted == 0) Require(sceNpTusWaitAsync(req, &result) == 0 && result == SignedOut, name, "the request did not finish signed out");
+    sceNpTusDeleteRequest(req);
+}
+
 }
 
 int main() {
@@ -204,6 +229,7 @@ int main() {
     CheckSync("sceNpTusGetDataForCrossSaveVUser", [&](int req) { return sceNpTusGetDataForCrossSaveVUser(req, &virtualUser, 1, buffer, sizeof(buffer), buffer, 16, nullptr); });
     CheckAsync("sceNpTusDeleteMultiSlotDataVUserAsync", [&](int req) { return sceNpTusDeleteMultiSlotDataVUserAsync(req, &virtualUser, slots, 2, nullptr); }, [&]() { return sceNpTusDeleteMultiSlotDataVUserAsync(9999, &virtualUser, slots, 2, nullptr); }, [&](int req) { return sceNpTusDeleteMultiSlotDataVUserAsync(req, &virtualUser, slots, 2, &buffer); });
     CheckSync("sceNpTusDeleteMultiSlotDataVUser", [&](int req) { return sceNpTusDeleteMultiSlotDataVUser(req, &virtualUser, slots, 2, nullptr); });
+    CheckTss("sceNpTssGetDataAsync", 0, [&](int req, int slotId, void* status, const TssOption* option) { return sceNpTssGetDataAsync(req, slotId, status, 24, buffer, 16, option); });
     {
         int req = NewRequest();
         Require(sceNpTusAddAndGetVariableVUserAsync(req, &emptyUser, 1, 5, nullptr, nullptr, buffer, sizeof(buffer), nullptr) == InvalidArgument, "sceNpTusAddAndGetVariableVUserAsync", "an empty virtual user was taken");
