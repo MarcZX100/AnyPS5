@@ -14,6 +14,7 @@ static constexpr int SCE_NP_COMMUNITY_ERROR_ABORTED = static_cast<int>(0x8055070
 static constexpr int SCE_NP_COMMUNITY_ERROR_INSUFFICIENT_ARGUMENT = static_cast<int>(0x8055070C);
 static constexpr int SCE_NP_COMMUNITY_ERROR_INVALID_ID = static_cast<int>(0x8055070E);
 static constexpr int SCE_NP_COMMUNITY_ERROR_INVALID_TYPE = static_cast<int>(0x80550711);
+static constexpr int SCE_NP_COMMUNITY_ERROR_INVALID_ALIGNMENT = static_cast<int>(0x80550714);
 static constexpr int SCE_NP_COMMUNITY_ERROR_TOO_MANY_SLOTID = static_cast<int>(0x80550718);
 static constexpr int SCE_NP_COMMUNITY_ERROR_TOO_MANY_NPID = static_cast<int>(0x80550719);
 static constexpr int POLL_FINISHED = 0;
@@ -59,6 +60,27 @@ int ValidateSlots(const std::int32_t* slotIds, int arrayLen, const void* option)
 int ValidateNonEmptySlots(const std::int32_t* slotIds, int arrayLen, const void* option) {
     if (!slotIds || arrayLen < 1) return SCE_NP_COMMUNITY_ERROR_INSUFFICIENT_ARGUMENT;
     return ValidateSlots(slotIds, arrayLen, option);
+}
+
+struct FriendsOptParam {
+    std::uint64_t size;
+    std::uint32_t* startSerialRank;
+    std::uint32_t* hits;
+};
+
+int ValidateFriendsOption(const FriendsOptParam* option) {
+    if (!option) return 0;
+    if (option->size != sizeof(FriendsOptParam)) return SCE_NP_COMMUNITY_ERROR_INVALID_ALIGNMENT;
+    if (option->startSerialRank && *option->startSerialRank == 0) return SCE_NP_COMMUNITY_ERROR_INVALID_ARGUMENT;
+    return 0;
+}
+
+int ValidateFriendsA(std::int32_t slotId, std::int32_t sortType, std::int32_t minSortType, std::int32_t maxSortType, const void* array, int arrayLen, const FriendsOptParam* option) {
+    if (!array) return SCE_NP_COMMUNITY_ERROR_INSUFFICIENT_ARGUMENT;
+    if (arrayLen < 1 || slotId < 0) return SCE_NP_COMMUNITY_ERROR_INVALID_ARGUMENT;
+    if (arrayLen > MAX_FRIENDS) return SCE_NP_COMMUNITY_ERROR_TOO_MANY_NPID;
+    if (sortType < minSortType || sortType > maxSortType) return SCE_NP_COMMUNITY_ERROR_INVALID_ARGUMENT;
+    return ValidateFriendsOption(option);
 }
 
 bool IsEmpty(const NpOnlineId* user) {
@@ -377,9 +399,11 @@ int APS5_VABI sceNpTusGetFriendsDataStatusA(void) {
     return 0;
 }
 
-int APS5_VABI sceNpTusGetFriendsDataStatusAAsync(void) {
-    NotImplemented_nid_no_patch(__func__);
-    return 0;
+int APS5_VABI sceNpTusGetFriendsDataStatusAAsync(int reqId, std::int32_t slotId, std::int32_t includeSelf, std::int32_t sortType, void* statusArray, std::uint64_t statusArraySize, int arrayLen, const FriendsOptParam* option) {
+    (void)includeSelf;
+    (void)statusArraySize;
+    if (const int error = ValidateFriendsA(slotId, sortType, DATASTATUS_SORTTYPE_DESCENDING_DATE, DATASTATUS_SORTTYPE_ASCENDING_DATE, statusArray, arrayLen, option)) return error;
+    return StartOffline(reqId);
 }
 
 int APS5_VABI sceNpTusGetFriendsDataStatusForCrossSave(void) {
