@@ -339,9 +339,11 @@ int APS5_VABI sceNpTusDeleteMultiSlotDataVUser(void) {
     return 0;
 }
 
-int APS5_VABI sceNpTusDeleteMultiSlotDataVUserAsync(void) {
-    NotImplemented_nid_no_patch(__func__);
-    return 0;
+int APS5_VABI sceNpTusDeleteMultiSlotDataVUserAsync(int reqId, const NpOnlineId* targetVirtualUserId, const std::int32_t* slotIds, int arrayLen, void* option) {
+    if (!targetVirtualUserId) return SCE_NP_COMMUNITY_ERROR_INSUFFICIENT_ARGUMENT;
+    if (const int error = ValidateNonEmptySlots(slotIds, arrayLen, option)) return error;
+    if (IsEmpty(targetVirtualUserId)) return SCE_NP_COMMUNITY_ERROR_INVALID_ARGUMENT;
+    return StartOffline(reqId);
 }
 
 int APS5_VABI sceNpTssGetStorage(void) {
