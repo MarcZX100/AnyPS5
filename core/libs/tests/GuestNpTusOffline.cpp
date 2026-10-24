@@ -200,6 +200,7 @@ int main() {
     CheckFriends("sceNpTusGetFriendsDataStatusForCrossSave", SignedOut, 2, true, [&](int req, int slotId, int sortType, void* array, int arrayLen, const FriendsOption* option) { return sceNpTusGetFriendsDataStatusForCrossSave(req, slotId, 0, sortType, array, 16, arrayLen, option); });
     CheckFriends("sceNpTusGetFriendsVariableForCrossSaveAsync", 0, 4, false, [&](int req, int slotId, int sortType, void* array, int arrayLen, const FriendsOption* option) { return sceNpTusGetFriendsVariableForCrossSaveAsync(req, slotId, 0, sortType, array, 16, arrayLen, option); });
     CheckFriends("sceNpTusGetFriendsVariableForCrossSave", SignedOut, 4, true, [&](int req, int slotId, int sortType, void* array, int arrayLen, const FriendsOption* option) { return sceNpTusGetFriendsVariableForCrossSave(req, slotId, 0, sortType, array, 16, arrayLen, option); });
+    CheckAsync("sceNpTusGetDataForCrossSaveVUserAsync", [&](int req) { return sceNpTusGetDataForCrossSaveVUserAsync(req, &virtualUser, 1, buffer, sizeof(buffer), buffer, 16, nullptr); }, [&]() { return sceNpTusGetDataForCrossSaveVUserAsync(9999, &virtualUser, 1, buffer, sizeof(buffer), buffer, 16, nullptr); }, [&](int req) { return sceNpTusGetDataForCrossSaveVUserAsync(req, &virtualUser, 1, buffer, sizeof(buffer), buffer, 16, &buffer); });
     {
         int req = NewRequest();
         Require(sceNpTusAddAndGetVariableVUserAsync(req, &emptyUser, 1, 5, nullptr, nullptr, buffer, sizeof(buffer), nullptr) == InvalidArgument, "sceNpTusAddAndGetVariableVUserAsync", "an empty virtual user was taken");
@@ -217,6 +218,12 @@ int main() {
         Require(sceNpTusGetMultiUserVariableAAsync(req, accounts, 1, buffer, sizeof(buffer), 102, nullptr) == TooManyNpId, "sceNpTusGetMultiUserVariableAAsync", "102 users were taken");
         Require(sceNpTusGetFriendsVariableAsync(req, 1, 0, 5, buffer, sizeof(buffer), 2, nullptr) == InvalidArgument, "sceNpTusGetFriendsVariableAsync", "sort type 5 was taken");
         Require(sceNpTusGetFriendsVariableAsync(req, 1, 0, 1, buffer, sizeof(buffer), 101, nullptr) == TooManyNpId, "sceNpTusGetFriendsVariableAsync", "101 friends were taken");
+        Require(sceNpTusGetDataForCrossSaveVUserAsync(req, nullptr, 1, buffer, sizeof(buffer), buffer, 16, nullptr) == InsufficientArgument, "sceNpTusGetDataForCrossSaveVUserAsync", "a null virtual user was taken");
+        Require(sceNpTusGetDataForCrossSaveVUserAsync(req, &virtualUser, 1, nullptr, sizeof(buffer), buffer, 16, nullptr) == InsufficientArgument, "sceNpTusGetDataForCrossSaveVUserAsync", "a null data status was taken");
+        Require(sceNpTusGetDataForCrossSaveVUserAsync(req, &virtualUser, 1, buffer, 0, buffer, 16, nullptr) == InsufficientArgument, "sceNpTusGetDataForCrossSaveVUserAsync", "a data status size of 0 was taken");
+        Require(sceNpTusGetDataForCrossSaveVUserAsync(req, &virtualUser, -1, buffer, sizeof(buffer), buffer, 16, nullptr) == InvalidArgument, "sceNpTusGetDataForCrossSaveVUserAsync", "a negative slot id was taken");
+        Require(sceNpTusGetDataForCrossSaveVUserAsync(req, &emptyUser, 1, buffer, sizeof(buffer), buffer, 16, nullptr) == InvalidArgument, "sceNpTusGetDataForCrossSaveVUserAsync", "an empty virtual user was taken");
+        Require(sceNpTusGetDataForCrossSaveVUserAsync(req, nullptr, -1, buffer, sizeof(buffer), buffer, 16, nullptr) == InvalidArgument, "sceNpTusGetDataForCrossSaveVUserAsync", "the slot id was not checked before the virtual user");
         sceNpTusDeleteRequest(req);
 
     }
