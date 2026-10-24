@@ -321,6 +321,7 @@ int APS5_VABI vsnwprintf_s_nid_postfix(char16_t* buffer, std::size_t size, const
 }
 
 int APS5_VABI wprintf_nid_postfix(const char16_t* format, ...) {
+    if (!__stdoutp_nid_postfix->IsOpen()) { errno = 9; return -1; }
     APS5_VA_BEGIN(format);
     int result = -1;
     try {
