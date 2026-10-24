@@ -230,6 +230,7 @@ int main() {
     CheckAsync("sceNpTusDeleteMultiSlotDataVUserAsync", [&](int req) { return sceNpTusDeleteMultiSlotDataVUserAsync(req, &virtualUser, slots, 2, nullptr); }, [&]() { return sceNpTusDeleteMultiSlotDataVUserAsync(9999, &virtualUser, slots, 2, nullptr); }, [&](int req) { return sceNpTusDeleteMultiSlotDataVUserAsync(req, &virtualUser, slots, 2, &buffer); });
     CheckSync("sceNpTusDeleteMultiSlotDataVUser", [&](int req) { return sceNpTusDeleteMultiSlotDataVUser(req, &virtualUser, slots, 2, nullptr); });
     CheckTss("sceNpTssGetDataAsync", 0, [&](int req, int slotId, void* status, const TssOption* option) { return sceNpTssGetDataAsync(req, slotId, status, 24, buffer, 16, option); });
+    CheckTss("sceNpTssGetData", SignedOut, [&](int req, int slotId, void* status, const TssOption* option) { return sceNpTssGetData(req, slotId, status, 24, buffer, 16, option); });
     {
         int req = NewRequest();
         Require(sceNpTusAddAndGetVariableVUserAsync(req, &emptyUser, 1, 5, nullptr, nullptr, buffer, sizeof(buffer), nullptr) == InvalidArgument, "sceNpTusAddAndGetVariableVUserAsync", "an empty virtual user was taken");
