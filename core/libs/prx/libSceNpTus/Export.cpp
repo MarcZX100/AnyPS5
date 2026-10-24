@@ -83,6 +83,19 @@ int ValidateFriendsA(std::int32_t slotId, std::int32_t sortType, std::int32_t mi
     return ValidateFriendsOption(option);
 }
 
+struct TssIfParam {
+    std::int32_t ifType;
+    std::int8_t padding[4];
+    std::uint64_t lastModified;
+};
+
+struct TssGetDataOptParam {
+    std::uint64_t size;
+    std::uint64_t* offset;
+    std::uint64_t* lastByte;
+    TssIfParam* ifParam;
+};
+
 bool IsEmpty(const NpOnlineId* user) {
     return !user->data[0];
 }
@@ -355,11 +368,6 @@ int APS5_VABI sceNpTssGetStorageAsync(void) {
     return 0;
 }
 
-int APS5_VABI sceNpTssGetDataAsync(void) {
-    NotImplemented_nid_no_patch(__func__);
-    return 0;
-}
-
 int APS5_VABI sceNpTusGetDataForCrossSaveVUserAsync(int reqId, const NpOnlineId* targetVirtualUserId, std::int32_t slotId, void* dataStatus, std::uint64_t dataStatusSize, void* data, std::uint64_t recvSize, void* option) {
     (void)data;
     (void)recvSize;
@@ -424,6 +432,16 @@ int APS5_VABI sceNpTusGetFriendsDataStatusForCrossSaveAsync(int reqId, std::int3
 
 int APS5_VABI sceNpTusGetFriendsDataStatusForCrossSave(int reqId, std::int32_t slotId, std::int32_t includeSelf, std::int32_t sortType, void* statusArray, std::uint64_t statusArraySize, int arrayLen, const void* option) {
     return Complete(reqId, sceNpTusGetFriendsDataStatusForCrossSaveAsync(reqId, slotId, includeSelf, sortType, statusArray, statusArraySize, arrayLen, option));
+}
+
+int APS5_VABI sceNpTssGetDataAsync(int reqId, std::int32_t slotId, void* dataStatus, std::uint64_t dataStatusSize, void* data, std::uint64_t recvSize, const TssGetDataOptParam* option) {
+    (void)dataStatusSize;
+    (void)data;
+    (void)recvSize;
+    if (!dataStatus) return SCE_NP_COMMUNITY_ERROR_INSUFFICIENT_ARGUMENT;
+    if (slotId < 0 || slotId > TSS_MAX_SLOT_ID) return SCE_NP_COMMUNITY_ERROR_INVALID_ARGUMENT;
+    if (option && option->size != sizeof(TssGetDataOptParam)) return SCE_NP_COMMUNITY_ERROR_INVALID_ALIGNMENT;
+    return StartOffline(reqId);
 }
 
 int APS5_VABI sceNpTssGetSmallStorageAsync(int reqId, void* data, std::uint64_t maxSize, std::uint64_t* contentLength, void* option) {
@@ -1029,11 +1047,6 @@ int APS5_VABI sceNpTusTryAndSetVariableForCrossSaveVUser(int reqId, const NpOnli
 
 int APS5_VABI sceNpTusTryAndSetVariableVUser(int reqId, const NpOnlineId* targetVirtualUserId, std::int32_t slotId, std::int32_t opeType, std::int64_t variable, const std::int64_t* compareValue, const void* isLastChangedAuthor, const void* isLastChangedDate, void* resultVariable, std::uint64_t resultVariableSize, void* option) {
     return Complete(reqId, sceNpTusTryAndSetVariableVUserAsync(reqId, targetVirtualUserId, slotId, opeType, variable, compareValue, isLastChangedAuthor, isLastChangedDate, resultVariable, resultVariableSize, option));
-}
-
-int APS5_VABI sceNpTssGetData() {
-    NotImplemented_nid_no_patch(__func__);
-    return 0;
 }
 
 int APS5_VABI sceNpTusCreateNpTitleCtx() {
