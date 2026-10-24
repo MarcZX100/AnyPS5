@@ -10,7 +10,7 @@
 - [sceNpTusSetTimeout](../../../core/libs/prx/libSceNpTus/Export.cpp) (libSceNpTus) - unknown signature
 - [sceNpTusChangeModeForOtherSaveDataOwners](../../../core/libs/prx/libSceNpTus/Export.cpp) (libSceNpTus) - unknown signature
 - [sceNpTusDeleteMultiSlotDataVUser](../../../core/libs/prx/libSceNpTus/Export.cpp) (libSceNpTus) - unknown signature
-- [sceNpTusDeleteMultiSlotDataVUserAsync](../../../core/libs/prx/libSceNpTus/Export.cpp) (libSceNpTus) - unknown signature
+- [sceNpTusDeleteMultiSlotDataVUserAsync](../../../core/libs/prx/libSceNpTus/Export.cpp) (libSceNpTus) - the argument checks and their order follow [shadPS4](https://github.com/shadps4-emu/shadPS4/blob/12a4564543ccec527f9723676d2180580d1d7a94/src/core/libraries/np/np_tus/np_tus.cpp#L2054) and are not measured on a console: a null virtual user, null slot ids or no slot are `INSUFFICIENT_ARGUMENT`, a non-null `option`, a negative slot id or an empty virtual user are `INVALID_ARGUMENT` and more than 64 slots are `TOO_MANY_SLOTID`. The request finishes with `SCE_NP_ERROR_SIGNED_OUT` and no slot data exists to delete.
 - [sceNpTssGetStorage](../../../core/libs/prx/libSceNpTus/Export.cpp) (libSceNpTus) - unknown signature
 - [sceNpTssGetStorageAsync](../../../core/libs/prx/libSceNpTus/Export.cpp) (libSceNpTus) - unknown signature
 - [sceNpTssGetDataAsync](../../../core/libs/prx/libSceNpTus/Export.cpp) (libSceNpTus) - unknown signature
