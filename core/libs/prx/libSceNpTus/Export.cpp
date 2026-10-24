@@ -444,6 +444,10 @@ int APS5_VABI sceNpTssGetDataAsync(int reqId, std::int32_t slotId, void* dataSta
     return StartOffline(reqId);
 }
 
+int APS5_VABI sceNpTssGetData(int reqId, std::int32_t slotId, void* dataStatus, std::uint64_t dataStatusSize, void* data, std::uint64_t recvSize, const TssGetDataOptParam* option) {
+    return Complete(reqId, sceNpTssGetDataAsync(reqId, slotId, dataStatus, dataStatusSize, data, recvSize, option));
+}
+
 int APS5_VABI sceNpTssGetSmallStorageAsync(int reqId, void* data, std::uint64_t maxSize, std::uint64_t* contentLength, void* option) {
     (void)data;
     (void)contentLength;
