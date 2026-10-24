@@ -399,10 +399,11 @@ int APS5_VABI sceNpTusGetFriendsDataStatusA(void) {
     return 0;
 }
 
-int APS5_VABI sceNpTusGetFriendsDataStatusAAsync(int reqId, std::int32_t slotId, std::int32_t includeSelf, std::int32_t sortType, void* statusArray, std::uint64_t statusArraySize, int arrayLen, const FriendsOptParam* option) {
+int APS5_VABI sceNpTusGetFriendsDataStatusAAsync(int reqId, std::int32_t slotId, std::int32_t includeSelf, std::int32_t sortType, void* statusArray, std::uint64_t statusArraySize, int arrayLen, const void* option) {
     (void)includeSelf;
     (void)statusArraySize;
-    if (const int error = ValidateFriendsA(slotId, sortType, DATASTATUS_SORTTYPE_DESCENDING_DATE, DATASTATUS_SORTTYPE_ASCENDING_DATE, statusArray, arrayLen, option)) return error;
+    const auto* friendsOption = static_cast<const FriendsOptParam*>(option);
+    if (const int error = ValidateFriendsA(slotId, sortType, DATASTATUS_SORTTYPE_DESCENDING_DATE, DATASTATUS_SORTTYPE_ASCENDING_DATE, statusArray, arrayLen, friendsOption)) return error;
     return StartOffline(reqId);
 }
 

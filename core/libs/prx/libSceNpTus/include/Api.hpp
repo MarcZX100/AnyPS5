@@ -51,7 +51,7 @@ int APS5_VABI sceNpTusGetFriendsVariableAAsync(void);
 int APS5_VABI sceNpTusGetFriendsVariableForCrossSave(void);
 int APS5_VABI sceNpTusGetFriendsVariableForCrossSaveAsync(void);
 int APS5_VABI sceNpTusGetFriendsDataStatusA(void);
-int APS5_VABI sceNpTusGetFriendsDataStatusAAsync(void);
+int APS5_VABI sceNpTusGetFriendsDataStatusAAsync(int reqId, std::int32_t slotId, std::int32_t includeSelf, std::int32_t sortType, void* statusArray, std::uint64_t statusArraySize, int arrayLen, const void* option);
 int APS5_VABI sceNpTusGetFriendsDataStatusForCrossSave(void);
 int APS5_VABI sceNpTusGetFriendsDataStatusForCrossSaveAsync(void);
 int APS5_VABI sceNpTssGetSmallStorageAsync(int reqId, void* data, std::uint64_t maxSize, std::uint64_t* contentLength, void* option);

@@ -6,10 +6,13 @@
 #include <cstring>
 #include <functional>
 
+
 namespace {
 
 constexpr int SignedOut = static_cast<int>(0x80550006u);
 constexpr int InvalidArgument = static_cast<int>(0x80550704u);
+constexpr int InsufficientArgument = static_cast<int>(0x8055070Cu);
+constexpr int InvalidAlignment = static_cast<int>(0x80550714u);
 constexpr int InvalidId = static_cast<int>(0x8055070Eu);
 constexpr int InvalidType = static_cast<int>(0x80550711u);
 constexpr int TooManySlotId = static_cast<int>(0x80550718u);
@@ -64,6 +67,37 @@ void CheckSync(const char* name, const std::function<int(int)>& call) {
     Require(call(req) == SignedOut, name, "the synchronous call did not return SIGNED_OUT");
     sceNpTusDeleteRequest(req);
 
+}
+
+struct FriendsOption {
+    std::uint64_t size;
+    std::uint32_t* startSerialRank;
+    std::uint32_t* hits;
+};
+
+void CheckFriends(const char* name, int accepted, int maxSortType, bool waits, const std::function<int(int, int, int, void*, int, const FriendsOption*)>& call) {
+    const int req = NewRequest();
+    Require(call(req, 1, 1, nullptr, 2, nullptr) == InsufficientArgument, name, "a null array was taken");
+    Require(call(req, 1, 1, buffer, 0, nullptr) == InvalidArgument, name, "an array length of 0 was taken");
+    Require(call(req, -1, 1, buffer, 2, nullptr) == InvalidArgument, name, "a negative slot id was taken");
+    Require(call(req, 1, 1, buffer, 101, nullptr) == TooManyNpId, name, "101 friends were taken");
+    Require(call(req, 1, 0, buffer, 2, nullptr) == InvalidArgument, name, "sort type 0 was taken");
+    Require(call(req, 1, maxSortType + 1, buffer, 2, nullptr) == InvalidArgument, name, "a sort type above the last one was taken");
+    std::uint32_t rank = 0;
+    std::uint32_t hits = 0x5a5a5a5a;
+    FriendsOption option{sizeof(FriendsOption) + 8, &rank, &hits};
+    Require(call(req, 1, 1, buffer, 2, &option) == InvalidAlignment, name, "an option of the wrong size was taken");
+    option.size = sizeof(FriendsOption);
+    Require(call(req, 1, 1, buffer, 2, &option) == InvalidArgument, name, "a start rank of 0 was taken");
+    rank = 3;
+    Require(call(req, 1, maxSortType, buffer, 2, &option) == accepted, name, "a valid option was refused");
+    Require(hits == 0x5a5a5a5a, name, "the hit count was written offline");
+    option.startSerialRank = nullptr;
+    Require(call(req, 1, 1, buffer, 100, &option) == accepted, name, "an option without a start rank or 100 friends was refused");
+    Require(call(9999, 1, 1, buffer, 2, nullptr) == InvalidId, name, "an unknown request was not refused with INVALID_ID");
+    int result = 0;
+    if (!waits) Require(sceNpTusWaitAsync(req, &result) == 0 && result == SignedOut, name, "the request did not finish signed out");
+    sceNpTusDeleteRequest(req);
 }
 
 }
@@ -158,6 +192,7 @@ int main() {
     CheckSync("sceNpTusTryAndSetVariableForCrossSave", [&](int req) { return sceNpTusTryAndSetVariableForCrossSave(req, 1, 1, 1, 5, nullptr, nullptr, nullptr, buffer, sizeof(buffer), nullptr); });
     CheckSync("sceNpTusTryAndSetVariableForCrossSaveVUser", [&](int req) { return sceNpTusTryAndSetVariableForCrossSaveVUser(req, &virtualUser, 1, 1, 5, nullptr, nullptr, nullptr, buffer, sizeof(buffer), nullptr); });
     CheckSync("sceNpTusTryAndSetVariableVUser", [&](int req) { return sceNpTusTryAndSetVariableVUser(req, &virtualUser, 1, 1, 5, nullptr, nullptr, nullptr, buffer, sizeof(buffer), nullptr); });
+    CheckFriends("sceNpTusGetFriendsDataStatusAAsync", 0, 2, false, [&](int req, int slotId, int sortType, void* array, int arrayLen, const FriendsOption* option) { return sceNpTusGetFriendsDataStatusAAsync(req, slotId, 0, sortType, array, 16, arrayLen, option); });
     {
         int req = NewRequest();
         Require(sceNpTusAddAndGetVariableVUserAsync(req, &emptyUser, 1, 5, nullptr, nullptr, buffer, sizeof(buffer), nullptr) == InvalidArgument, "sceNpTusAddAndGetVariableVUserAsync", "an empty virtual user was taken");
