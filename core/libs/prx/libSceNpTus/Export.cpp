@@ -390,9 +390,11 @@ int APS5_VABI sceNpTusGetFriendsVariableForCrossSave(void) {
     return 0;
 }
 
-int APS5_VABI sceNpTusGetFriendsVariableForCrossSaveAsync(void) {
-    NotImplemented_nid_no_patch(__func__);
-    return 0;
+int APS5_VABI sceNpTusGetFriendsVariableForCrossSaveAsync(int reqId, std::int32_t slotId, std::int32_t includeSelf, std::int32_t sortType, void* variableArray, std::uint64_t variableArraySize, int arrayLen, const FriendsOptParam* option) {
+    (void)includeSelf;
+    (void)variableArraySize;
+    if (const int error = ValidateFriendsA(slotId, sortType, VARIABLE_SORTTYPE_DESCENDING_DATE, VARIABLE_SORTTYPE_ASCENDING_VALUE, variableArray, arrayLen, option)) return error;
+    return StartOffline(reqId);
 }
 
 int APS5_VABI sceNpTusGetFriendsDataStatusAAsync(int reqId, std::int32_t slotId, std::int32_t includeSelf, std::int32_t sortType, void* statusArray, std::uint64_t statusArraySize, int arrayLen, const void* option) {
