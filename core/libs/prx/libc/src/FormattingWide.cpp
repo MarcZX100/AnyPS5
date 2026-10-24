@@ -362,6 +362,7 @@ int APS5_VABI vwprintf_nid_postfix(const char16_t* format, VaList* args) {
 
 int APS5_VABI fputwc_nid_postfix(char16_t value, FileStream* stream) {
     if (stream == nullptr) { errno = 22; return -1; }
+    if (!stream->IsOpen()) { errno = 9; return -1; }
     try {
         const std::string bytes = ToUtf8(std::u16string(1, value));
         auto* native = GetNativeStream(stream);
@@ -376,6 +377,7 @@ int APS5_VABI fputwc_nid_postfix(char16_t value, FileStream* stream) {
 
 int APS5_VABI fputws_nid_postfix(const char16_t* str, FileStream* stream) {
     if (str == nullptr || stream == nullptr) { errno = 22; return -1; }
+    if (!stream->IsOpen()) { errno = 9; return -1; }
     try {
         const std::u16string text(str);
         const std::string bytes = ToUtf8(text);
