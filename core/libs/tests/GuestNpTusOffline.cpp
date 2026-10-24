@@ -197,6 +197,7 @@ int main() {
     CheckFriends("sceNpTusGetFriendsVariableAAsync", 0, 4, false, [&](int req, int slotId, int sortType, void* array, int arrayLen, const FriendsOption* option) { return sceNpTusGetFriendsVariableAAsync(req, slotId, 0, sortType, array, 16, arrayLen, option); });
     CheckFriends("sceNpTusGetFriendsVariableA", SignedOut, 4, true, [&](int req, int slotId, int sortType, void* array, int arrayLen, const FriendsOption* option) { return sceNpTusGetFriendsVariableA(req, slotId, 0, sortType, array, 16, arrayLen, option); });
     CheckFriends("sceNpTusGetFriendsDataStatusForCrossSaveAsync", 0, 2, false, [&](int req, int slotId, int sortType, void* array, int arrayLen, const FriendsOption* option) { return sceNpTusGetFriendsDataStatusForCrossSaveAsync(req, slotId, 0, sortType, array, 16, arrayLen, option); });
+    CheckFriends("sceNpTusGetFriendsDataStatusForCrossSave", SignedOut, 2, true, [&](int req, int slotId, int sortType, void* array, int arrayLen, const FriendsOption* option) { return sceNpTusGetFriendsDataStatusForCrossSave(req, slotId, 0, sortType, array, 16, arrayLen, option); });
     {
         int req = NewRequest();
         Require(sceNpTusAddAndGetVariableVUserAsync(req, &emptyUser, 1, 5, nullptr, nullptr, buffer, sizeof(buffer), nullptr) == InvalidArgument, "sceNpTusAddAndGetVariableVUserAsync", "an empty virtual user was taken");
