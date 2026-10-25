@@ -434,17 +434,18 @@ int APS5_VABI sceNpTusGetFriendsDataStatusForCrossSave(int reqId, std::int32_t s
     return Complete(reqId, sceNpTusGetFriendsDataStatusForCrossSaveAsync(reqId, slotId, includeSelf, sortType, statusArray, statusArraySize, arrayLen, option));
 }
 
-int APS5_VABI sceNpTssGetDataAsync(int reqId, std::int32_t slotId, void* dataStatus, std::uint64_t dataStatusSize, void* data, std::uint64_t recvSize, const TssGetDataOptParam* option) {
+int APS5_VABI sceNpTssGetDataAsync(int reqId, std::int32_t slotId, void* dataStatus, std::uint64_t dataStatusSize, void* data, std::uint64_t recvSize, const void* option) {
     (void)dataStatusSize;
     (void)data;
     (void)recvSize;
     if (!dataStatus) return SCE_NP_COMMUNITY_ERROR_INSUFFICIENT_ARGUMENT;
     if (slotId < 0 || slotId > TSS_MAX_SLOT_ID) return SCE_NP_COMMUNITY_ERROR_INVALID_ARGUMENT;
-    if (option && option->size != sizeof(TssGetDataOptParam)) return SCE_NP_COMMUNITY_ERROR_INVALID_ALIGNMENT;
+    const auto* opt = static_cast<const TssGetDataOptParam*>(option);
+    if (opt && opt->size != sizeof(TssGetDataOptParam)) return SCE_NP_COMMUNITY_ERROR_INVALID_ALIGNMENT;
     return StartOffline(reqId);
 }
 
-int APS5_VABI sceNpTssGetData(int reqId, std::int32_t slotId, void* dataStatus, std::uint64_t dataStatusSize, void* data, std::uint64_t recvSize, const TssGetDataOptParam* option) {
+int APS5_VABI sceNpTssGetData(int reqId, std::int32_t slotId, void* dataStatus, std::uint64_t dataStatusSize, void* data, std::uint64_t recvSize, const void* option) {
     return Complete(reqId, sceNpTssGetDataAsync(reqId, slotId, dataStatus, dataStatusSize, data, recvSize, option));
 }
 

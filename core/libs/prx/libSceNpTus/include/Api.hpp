@@ -42,7 +42,7 @@ int APS5_VABI sceNpTusDeleteMultiSlotDataVUser(int reqId, const NpOnlineId* targ
 int APS5_VABI sceNpTusDeleteMultiSlotDataVUserAsync(int reqId, const NpOnlineId* targetVirtualUserId, const std::int32_t* slotIds, int arrayLen, void* option);
 int APS5_VABI sceNpTssGetStorage(void);
 int APS5_VABI sceNpTssGetStorageAsync(void);
-int APS5_VABI sceNpTssGetDataAsync(void);
+int APS5_VABI sceNpTssGetDataAsync(int reqId, std::int32_t slotId, void* dataStatus, std::uint64_t dataStatusSize, void* data, std::uint64_t recvSize, const void* option);
 int APS5_VABI sceNpTusGetDataForCrossSaveVUser(int reqId, const NpOnlineId* targetVirtualUserId, std::int32_t slotId, void* dataStatus, std::uint64_t dataStatusSize, void* data, std::uint64_t recvSize, void* option);
 int APS5_VABI sceNpTusGetDataForCrossSaveVUserAsync(int reqId, const NpOnlineId* targetVirtualUserId, std::int32_t slotId, void* dataStatus, std::uint64_t dataStatusSize, void* data, std::uint64_t recvSize, void* option);
 int APS5_VABI sceNpTusGetMultiUserVariableForCrossSave(void);
@@ -136,7 +136,7 @@ int APS5_VABI sceNpTusTryAndSetVariableAVUser(int reqId, const NpOnlineId* targe
 int APS5_VABI sceNpTusTryAndSetVariableForCrossSave(int reqId, std::uint64_t targetAccountId, std::int32_t slotId, std::int32_t opeType, std::int64_t variable, const std::int64_t* compareValue, const std::uint64_t* isLastChangedAuthor, const void* isLastChangedDate, void* resultVariable, std::uint64_t resultVariableSize, void* option);
 int APS5_VABI sceNpTusTryAndSetVariableForCrossSaveVUser(int reqId, const NpOnlineId* targetVirtualUserId, std::int32_t slotId, std::int32_t opeType, std::int64_t variable, const std::int64_t* compareValue, const std::uint64_t* isLastChangedAuthor, const void* isLastChangedDate, void* resultVariable, std::uint64_t resultVariableSize, void* option);
 int APS5_VABI sceNpTusTryAndSetVariableVUser(int reqId, const NpOnlineId* targetVirtualUserId, std::int32_t slotId, std::int32_t opeType, std::int64_t variable, const std::int64_t* compareValue, const void* isLastChangedAuthor, const void* isLastChangedDate, void* resultVariable, std::uint64_t resultVariableSize, void* option);
-int APS5_VABI sceNpTssGetData();
+int APS5_VABI sceNpTssGetData(int reqId, std::int32_t slotId, void* dataStatus, std::uint64_t dataStatusSize, void* data, std::uint64_t recvSize, const void* option);
 int APS5_VABI sceNpTusCreateNpTitleCtx();
 int APS5_VABI sceNpTusGetData();
 int APS5_VABI sceNpTusGetDataVUser();
