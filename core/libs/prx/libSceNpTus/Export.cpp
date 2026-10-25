@@ -435,13 +435,12 @@ int APS5_VABI sceNpTusGetFriendsDataStatusForCrossSave(int reqId, std::int32_t s
 }
 
 int APS5_VABI sceNpTssGetDataAsync(int reqId, std::int32_t slotId, void* dataStatus, std::uint64_t dataStatusSize, void* data, std::uint64_t recvSize, const void* option) {
-    (void)dataStatusSize;
     (void)data;
     (void)recvSize;
-    if (!dataStatus) return SCE_NP_COMMUNITY_ERROR_INSUFFICIENT_ARGUMENT;
-    if (slotId < 0 || slotId > TSS_MAX_SLOT_ID) return SCE_NP_COMMUNITY_ERROR_INVALID_ARGUMENT;
     const auto* opt = static_cast<const TssGetDataOptParam*>(option);
     if (opt && opt->size != sizeof(TssGetDataOptParam)) return SCE_NP_COMMUNITY_ERROR_INVALID_ALIGNMENT;
+    if (dataStatus && dataStatusSize != 0x18) return SCE_NP_COMMUNITY_ERROR_INVALID_ALIGNMENT;
+    if (slotId < 0 || slotId > TSS_MAX_SLOT_ID) return SCE_NP_COMMUNITY_ERROR_INVALID_ARGUMENT;
     return StartOffline(reqId);
 }
 

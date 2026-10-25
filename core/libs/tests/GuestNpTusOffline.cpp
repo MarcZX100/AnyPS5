@@ -109,12 +109,16 @@ struct TssOption {
 
 void CheckTss(const char* name, int accepted, const std::function<int(int, int, void*, const TssOption*)>& call) {
     const int req = NewRequest();
-    Require(call(req, 0, nullptr, nullptr) == InsufficientArgument, name, "a null data status was taken");
+    Require(call(req, 0, nullptr, nullptr) == accepted, name, "a null data status did not reach the request");
     Require(call(req, -1, buffer, nullptr) == InvalidArgument, name, "a negative slot id was taken");
     Require(call(req, 16, buffer, nullptr) == InvalidArgument, name, "slot id 16 was taken");
-    Require(call(req, 0, nullptr, nullptr) == InsufficientArgument, name, "the data status was not checked before the slot");
+    Require(call(req, 16, nullptr, nullptr) == InvalidArgument, name, "the slot was not checked when data status is null");
+    Require(call(req, 0, buffer, nullptr) == accepted, name, "data status size 0 was refused");
+    Require(call(req, 0, buffer, reinterpret_cast<const TssOption*>(buffer)) == InvalidAlignment, name, "the option-size check did not run before the request lookup");
     TssOption option{sizeof(TssOption) - 8, nullptr, nullptr, nullptr};
+    Require(call(req, 16, buffer, &option) == InvalidAlignment, name, "the option-size check did not run before the slot check");
     Require(call(req, 15, buffer, &option) == InvalidAlignment, name, "an option of the wrong size was taken");
+    Require(call(req, 15, buffer, nullptr) == accepted, name, "a short data status size was refused");
     std::uint64_t offset = 4;
     option = TssOption{sizeof(TssOption), &offset, &offset, nullptr};
     Require(call(req, 15, buffer, &option) == accepted, name, "a valid option was refused");
